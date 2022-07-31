@@ -12,7 +12,7 @@ function createShader(gl, raw_vertex_shad, raw_frag_shad) {
         }
 
         console.log("SHADER ERROR");
-        console.log(gl.GetShaderInfoLog(shader));
+        console.log(gl.getShaderInfoLog(shader));
         gl.deleteShader(shader);
     }
 
@@ -47,5 +47,10 @@ function bindVec4Uniform(gl, program, name, vec) {
     gl.uniform4f(gl.getUniformLocation(program, name), vec[0], vec[1], vec[2], vec[3]);
 }
 
+function bindTexture(gl, program, name, texture, index) {
+    gl.activeTexture(gl.TEXTURE0 + index);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(gl.getUniformLocation(program, name), index);
+}
 
-export{ createShader, bindMat4Uniform, bindVec3Uniform, bindVec4Uniform };
+export{ createShader, bindMat4Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture };
