@@ -24,6 +24,9 @@ const vert_shader = `#version 300 es
 
     void main() {
         frag_color = texture(u_texture, v_uv);
+        if (frag_color.a < 0.01) {
+            discard;
+        }
     }`;
 
 

@@ -60,6 +60,17 @@
         border-bottom-style: solid;
         border-color: black;
     }
+    .window_body {
+        width: 100%;
+        height: 80%;
+        bottom: 0;
+    }
+
+     #steve-canvas {
+         display: block;
+         width: 100% !important;
+         height: 100% !important;
+     }
   </style>
 
 
@@ -67,7 +78,10 @@
     <div id="wrapper">
       <div id="desktop-area">
         <div id="drag-example" class="dragable_windows">
-          <div class="window_title" ></div>
+            <div class="window_title" ></div>
+            <div class="window_body">
+                <canvas id="steve-canvas"/>
+            </div>
         </div>
 
         <canvas id="screensaver-canvas"/>
@@ -82,60 +96,16 @@
     <script src="js/third-party/gl-matrix-min.js"></script>
    <script type="module">
 
+     import { makeWindowDragable } from "./js/drag_drop.js";
      // Window Dragging
      var element = document.getElementById("drag-example");
 
-     const DragStates = {
-         DRAGGING: 0,
-         NO_DRAGGING: 1
-     };
+     makeWindowDragable(element);
 
-     function clickDragableElement(element) {
-         if (element.drag_state == DragStates.DRAGGING) {
-             //return;
-         }
-
-         element.drag_state = DragStates.DRAGGING;
-
-         document.onmousemove = dragDragableElement;
-       element.onmouseleave = function () {
-         document.onmousemove = null;
-         console.log("out");
-       } ;
-
-         element.srcElement.start_pos_x = element.clientX;
-         element.srcElement.start_pos_y = element.clientY;
-     }
-
-     function dragDragableElement(element) {
-         var el = element.srcElement;
-         const new_x = el.start_pos_x - element.clientX;
-         const new_y = el.start_pos_y - element.clientY;
-         el.start_pos_x = element.clientX;
-         el.start_pos_y = element.clientY;
-         el.style.left = (el.offsetLeft - new_x) + "px";
-         el.style.top = (el.offsetTop - new_y) + "px";
-     }
-
-     function releaseDragableElement(element) {
-         if (element.drag_state == DragStates.NO_DRAGGING) {
-             //return;
-         }
-         element.drag_state = DragStates.NO_DRAGGING;
-
-         document.onmousemove = null;
-     }
-
-     function makeDragable(element) {
-         element.drag_state = DragStates.NO_DRAGGING;
-         element.onmousedown = clickDragableElement;
-         element.onmouseup = releaseDragableElement;
-     }
-
-     makeDragable(element); 
-
-     import { init_webgl_screensaver } from "./js/screensaver.js"
+     import { init_webgl_screensaver } from "./js/screensaver.js";
+     import { init_steve_head } from "./js/steve_head.js";
      init_webgl_screensaver();
+     init_steve_head();
    </script>
   </body>
 </html>
