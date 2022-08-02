@@ -3,7 +3,7 @@
 vertices = []
 uvs = []
 
-with open('steve.obj', 'r') as obj_file:
+with open('steve2.obj', 'r') as obj_file:
     for line in obj_file:
         line_parts = line.split(' ', 1)
         if 'v ' in line:
