@@ -5,15 +5,18 @@ import { create_color_FBO  } from "./fbo_utils.js"
 function init_webgl_screensaver() {
   var screensaver_canvas = document.querySelector("#screensaver-canvas");
 
-  var gl = WebGLDebugUtils.makeDebugContext(screensaver_canvas.getContext("webgl2" , {
+  /*var gl = WebGLDebugUtils.makeDebugContext(screensaver_canvas.getContext("webgl2" , {
     premultipliedAlpha: false,
     alpha: false
-  }));
+  }));*/
 
-  /*var gl = screensaver_canvas.getContext("webgl2", {
-    premultipliedAlpha: false,
-    alpha: false
-  }); */
+
+
+  var gl = screensaver_canvas.getContext("webgl2", {
+    antialias: true
+    //premultipliedAlpha: false,
+    //alpha: false
+  });
 
   const vert_shader = `#version 300 es
     layout(location = 0)in vec3 a_position;
@@ -61,8 +64,25 @@ function init_webgl_screensaver() {
 
     uniform sampler2D u_text;
 
+    bool is_in_range(float x, float y) {
+        return x >= (y - 0.1) && x <= (y + 0.1);
+    }
+    bool is_color(vec3 color, vec3 sampl) {
+        return is_in_range(color.r, sampl.x) && is_in_range(color.g, sampl.g) && is_in_range(color.b, sampl.b);
+    }
+
     void main() {
         frag_color = texture(u_text, v_uv);
+        if (frag_color.a < 0.01) {
+            discard;
+        }
+        if (is_color(frag_color.rgb, vec3(0.949, 1.0, 0.459))) {
+            frag_color.rgb = vec3(1, 0, 1);
+        } else if (is_color(frag_color.rgb, vec3(1.0, 0.773, 0.749))) {
+            frag_color.rgb = vec3(20,20,20);
+        } else if (is_color(frag_color.rgb, vec3(1.0, 0.69, 0.522))) {
+            frag_color.rgb = vec3(0,0,1);
+        }
     }`;
 
   var program = createShader(gl, vert_shader, frag_shader);
@@ -70,10 +90,10 @@ function init_webgl_screensaver() {
 
   // Position buffer
   let vertex_position = [
-    -0.5, 0.5, 0.0,      0.0, 1.0,
-    0.5, 0.5, 0.0,       1.0, 1.0,
-    -0.5, -0.5, 0.0,     0.0, 0.0,
-    0.5, -0.5, 0.0,      1.0, 0.0
+    -1.0, 1.0, 0.0,      0.0, 1.0,
+    1.0, 1.0, 0.0,       1.0, 1.0,
+    -1.0, -1.0, 0.0,     0.0, 0.0,
+    1.0, -1.0, 0.0,      1.0, 0.0
   ];
   // Index buffer
   let indices = [
@@ -122,31 +142,22 @@ function init_webgl_screensaver() {
 
   for(var i = 0; i < 3; i++) {
     glMatrix.mat4.identity(models[i]);
-    if (i == 1) {
-      glMatrix.mat4.translate(models[i], models[i], [0.0, 1.0 - (i * 1.0), 1.5]);
-    } else {
-      glMatrix.mat4.translate(models[i], models[i], [0.0, 1.0 - (i * 1.0), 0.5]);
-    }
-
-    //glMatrix.mat4.scale(models[i], models[i], [0.50, 0.50, 0.50]);
+    glMatrix.mat4.scale(models[i], models[i], [0.5, 0.5, 0.5]);
+    //glMatrix.mat4.translate(models[i], models[i], [0.0, 1.0 - (i * 0.50), (i * 0.50)]);
+    glMatrix.mat4.translate(models[i], models[i], [0.0, 0.8 * Math.sin((new Date().getTime() / 50) + (i * Math.PI)), (i * 0.50)]);
     glMatrix.mat4.rotate(models[i], models[i], 45.0 * 0.0174533, [0.0, 0.0, 1.0]);
-    //glMatrix.mat4.rotate(models[i], models[i], 25.0 * 0.0174533, [0.0, 1.0, 0.0]);
-    //glMatrix.mat4.rotate(models[i], models[i], 25.0 * 0.0174533, [1.0, 0.0, 0.0]);
-
-    /*var rotation_pos = [0.0,
-      0.75 * Math.sin((new Date().getTime() / 500) + Math.pow(2.0, i) * Math.PI / 3),
-      0.75 * Math.cos((new Date().getTime() / 500) + Math.pow(2.0, i) * Math.PI / 3),
-      0.0];*/
-
-    //glMatrix.vec4.transformMat4(rotation_pos, rotation_pos, rotation_mat);
 
   }
 
-  var texture = texture_load(gl, "img/magenta.png");
+  var textures = [
+    texture_load(gl, "img/blu.png"),
+    texture_load(gl, "img/yellow.png"),
+    texture_load(gl, "img/magenta.png")
+  ];
+
+  var transparent_tex = texture_load(gl, "img/transparent.png");
 
   var [fbo, fbo_color] = create_color_FBO(gl, screensaver_canvas.clientWidth, screensaver_canvas.clientHeight);
-
-  console.log(fbo, fbo_color);
 
   (function render(elapsed_time) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -161,7 +172,22 @@ function init_webgl_screensaver() {
       // Make the canvas the same size
       screensaver_canvas.width  = displayWidth;
       screensaver_canvas.height = displayHeight;
+      console.log("wwf");
       // TODO: re-create the FBO
+      gl.deleteTexture(fbo_color);
+      gl.deleteFramebuffer(fbo);
+      [fbo, fbo_color] = create_color_FBO(gl, screensaver_canvas.width, screensaver_canvas.height);
+    }
+
+    for(var i = 0; i < 3; i++) {
+      glMatrix.mat4.identity(models[i]);
+      glMatrix.mat4.scale(models[i], models[i], [0.5,0.5, 0.5]);
+      //glMatrix.mat4.translate(models[i], models[i], [0.0, 1.0 - (i * 0.50), (i * 0.50)]);
+      var sins = 0.05 * Math.sin((new Date().getTime() / 500) + ((i) * Math.PI / 3));
+      glMatrix.mat4.translate(models[i], models[i], [0.0,  1.0 - (i * 0.70) + sins, (i * 0.50)]);
+      glMatrix.mat4.rotate(models[i], models[i], 45.0 * 0.0174533, [0.0, 0.0, 1.0]);
+      //console.log(Math.sin((new Date().getTime() / 500) + ((2) * Math.PI)));
+
     }
 
     // Animation
@@ -176,15 +202,18 @@ function init_webgl_screensaver() {
       return a.depth - b.depth;
     });
 
+
+    var aspect_ratio = screensaver_canvas.width / screensaver_canvas.height;
+
     glMatrix.mat4.ortho(proj_mat,
-                        -2.50, 2.50,
+                        -2.50 * aspect_ratio, 2.50 * aspect_ratio,
                         -2.50, 2.50,
                         0.1,
                         1000);
 
 
     var up = [0.0, 1.0, 0.0];
-    var eye = [0.2 * Math.sin(new Date().getTime() / 500), 0.0, 4.0];
+    var eye = [0.0, 0.0 ,  10.0];
     var center = [0.0, 0.0, 0.0];
 
     glMatrix.mat4.lookAt(view_mat,
@@ -198,53 +227,80 @@ function init_webgl_screensaver() {
     glMatrix.mat4.multiply(vp_mat, proj_mat, vp_mat);
 
     // Render to FBO
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.viewport(0, 0, screensaver_canvas.width, screensaver_canvas.height);
-    // Clean prev, frame
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
+    {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.viewport(0, 0, screensaver_canvas.width, screensaver_canvas.height);
+      // Clean prev, frame
+      gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Enable blending
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      // Enable blending
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    gl.useProgram(program);
-    gl.bindVertexArray(vao);
+      gl.useProgram(program);
+      gl.bindVertexArray(vao);
 
-    // Render the quads, via the order of the drawcalls
-    bindTexture(gl, program, "u_texture", texture, 0);
-    bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[0].index]);
-    bindMat4Uniform(gl, program, "u_vp_mat", vp_mat);
-    bindVec4Uniform(gl, program, "u_color", draw_calls[0].color);
+      // Render the quads, via the order of the drawcalls
+      bindTexture(gl, program, "u_texture", textures[draw_calls[0].index], 0);
+      bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[0].index]);
+      bindMat4Uniform(gl, program, "u_vp_mat", vp_mat);
+      bindVec4Uniform(gl, program, "u_color", draw_calls[0].color);
 
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
 
-    bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[1].index]);
-    bindVec4Uniform(gl, program, "u_color", draw_calls[1].color);
+      bindTexture(gl, program, "u_texture", textures[draw_calls[1].index], 0);
+      bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[1].index]);
+      bindVec4Uniform(gl, program, "u_color", draw_calls[1].color);
 
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
 
-    bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[2].index]);
-    bindVec4Uniform(gl, program, "u_color", draw_calls[2].color);
+      bindTexture(gl, program, "u_texture", textures[draw_calls[2].index], 0);
+      bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[2].index]);
+      bindVec4Uniform(gl, program, "u_color", draw_calls[2].color);
 
-    gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
+
+      //gl.enable(gl.BLEND);
+    }
+
+    {
+      // Bind the canvas back
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, screensaver_canvas.width, screensaver_canvas.height);
+      // Clean prev, frame
+      gl.clearColor(1.0, 1.0, 1.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+
+      gl.disable(gl.BLEND);
+      //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+
+      gl.useProgram(post_proc_shader);
+      gl.bindVertexArray(vao);
+
+      bindTexture(gl, post_proc_shader, "u_text", fbo_color, 0);
+      gl.drawElements(gl.TRIANGLES, 6,
+                      gl.UNSIGNED_INT,
+                      index_buffer);
+
+      // Borders
+      gl.useProgram(program);
+      gl.bindVertexArray(vao);
+      gl.enable(gl.BLEND);
+
+      bindTexture(gl, program, "u_texture", transparent_tex, 0);
+      bindMat4Uniform(gl, program, "u_vp_mat", vp_mat);
+      bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[0].index]);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
+
+      bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[1].index]);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
+
+      bindMat4Uniform(gl, program, "u_model_mat", models[draw_calls[2].index]);
+      gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
 
 
-
-    // Bind the canvas back
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.viewport(0, 0, displayWidth, displayWidth);
-    // Clean prev, frame
-    gl.clearColor(1.0, 1.0, 1.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-
-    gl.useProgram(post_proc_shader);
-    gl.bindVertexArray(vao);
-
-    bindTexture(gl, post_proc_shader, "u_text", fbo_color, 0);
-    gl.drawElements(gl.TRIANGLES, 6,
-                    gl.UNSIGNED_INT,
-                    index_buffer);
+    }
 
     requestAnimationFrame(render);
   })();

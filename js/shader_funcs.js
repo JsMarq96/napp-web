@@ -1,4 +1,36 @@
 
+const vert_shader = `#version 300 es
+    layout(location = 0)in vec3 a_position;
+    layout(location = 1)in vec2 a_uv;
+
+    out vec2 v_uv;
+
+    uniform mat4 u_model_mat;
+    uniform mat4 u_vp_mat;
+
+    void main() {
+        v_uv = a_uv;
+        gl_Position = u_vp_mat * u_model_mat * vec4(a_position, 1.0);
+    }`;
+
+  const frag_shader = `#version 300 es
+    precision highp float;
+
+    in vec2 v_uv;
+
+    out vec4 frag_color;
+
+    uniform sampler2D u_texture;
+
+    void main() {
+        frag_color = texture(u_texture, v_uv);
+    }`;
+
+
+function get_normal_shaders(gl) {
+    return createShader(gl, vert_shader, frag_shader);
+}
+
 function createShader(gl, raw_vertex_shad, raw_frag_shad) {
     function create_single_shader(type, raw_shader) {
         var shader = gl.createShader(type);
@@ -53,4 +85,4 @@ function bindTexture(gl, program, name, texture, index) {
     gl.uniform1i(gl.getUniformLocation(program, name), index);
 }
 
-export{ createShader, bindMat4Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture };
+export{ createShader, bindMat4Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture, get_normal_shaders };
