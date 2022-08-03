@@ -75,7 +75,7 @@ function bindMat4Uniform(gl, program, name, mat) {
 }
 
 function bindVec3Uniform(gl, program, name, vec) {
-    gl.uniform3fv(gl.getUniformLocation(program, name), vec);
+    gl.uniform3f(gl.getUniformLocation(program, name), vec[0], vec[1], vec[2]);
 }
 
 function bindVec4Uniform(gl, program, name, vec) {

@@ -66,11 +66,16 @@
         bottom: 0;
     }
 
-     #steve-canvas {
+     .window_body canvas {
          display: block;
          width: 100% !important;
          height: 100% !important;
      }
+    #visualization {
+        top: 20px;
+        left: 120px;
+        width: 600px;
+    }
   </style>
 
 
@@ -83,6 +88,14 @@
                 <canvas id="steve-canvas"/>
             </div>
         </div>
+
+        <div id="visualization" class="dragable_windows">
+            <div class="window_title" ></div>
+            <div class="window_body">
+                <canvas id="block-canvas"/>
+            </div>
+        </div>
+
 
         <canvas id="screensaver-canvas"/>
 
@@ -104,8 +117,10 @@
 
      import { init_webgl_screensaver } from "./js/screensaver.js";
      import { init_steve_head } from "./js/steve_head.js";
+     import { init_block_renderer } from "./js/block_renderer.js";
      init_webgl_screensaver();
      init_steve_head();
+     init_block_renderer();
    </script>
   </body>
 </html>

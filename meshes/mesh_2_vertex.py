@@ -3,7 +3,7 @@
 vertices = []
 uvs = []
 
-with open('steve2.obj', 'r') as obj_file:
+with open('steve.obj', 'r') as obj_file:
     for line in obj_file:
         line_parts = line.split(' ', 1)
         if 'v ' in line:
@@ -17,4 +17,5 @@ with open('steve2.obj', 'r') as obj_file:
 
             for vertex in raw_face:
                 indices = vertex.split('/')
-                print(vertices[int(indices[0]) - 1] + ',    ' + uvs[int(indices[1]) - 1] + ',')
+                print(vertices[int(indices[0]) - 1] + ',    ' + uvs[int(indices[1]) - 1] + ', ')
+            print("// Face === ")
