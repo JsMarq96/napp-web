@@ -82,10 +82,18 @@ function bindVec4Uniform(gl, program, name, vec) {
     gl.uniform4f(gl.getUniformLocation(program, name), vec[0], vec[1], vec[2], vec[3]);
 }
 
+function bindVec2Uniform(gl, program, name, vec) {
+    gl.uniform2f(gl.getUniformLocation(program, name), vec[0], vec[1]);
+}
+
+function bindFloatUniform(gl, program, name, vec) {
+    gl.uniform1f(gl.getUniformLocation(program, name), vec);
+}
+
 function bindTexture(gl, program, name, texture, index) {
     gl.activeTexture(gl.TEXTURE0 + index);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.uniform1i(gl.getUniformLocation(program, name), index);
 }
 
-export{ createShader, bindMat4Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture, get_normal_shaders };
+export{ createShader, bindMat4Uniform, bindFloatUniform, bindVec2Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture, get_normal_shaders };

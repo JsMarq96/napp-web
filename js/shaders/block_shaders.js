@@ -30,6 +30,12 @@ uniform sampler2D u_met_rough_tex;
 
 uniform vec3 u_light_pos;
 
+// Animation
+uniform float u_time;
+uniform vec2 u_albedo_anim_size;
+uniform vec2 u_normal_anim_size;
+uniform vec2 u_specular_anim_size;
+
 in vec3 v_face_normal;
 in vec2 v_uv;
 in vec3 v_world_position;
@@ -116,18 +122,27 @@ sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos) {
 	return vects;
 }
 
+vec2 get_tiling_uv(vec2 uv, vec2 uv_size) {
+	float t = u_time;
+	vec2 t_uv = (uv / uv_size) + (vec2(0.0, mod(t, uv_size.y)) / uv_size);
+	return t_uv;
+	//return (uv / uv_size) + (vec2(mod((u_time / 1000.0), uv_size.s), mod((u_time / 1000.0), uv_size.t))  * 1.0 / uv_size);
+}
+
 sFragData getDataOfFragment(const in vec2 uv) {
 	sFragData mat;
 
-	vec4 mrt = texture(u_met_rough_tex, uv);
+	vec2 specular_uv = uv / u_specular_anim_size + (vec2(u_time / 10000.0) / u_specular_anim_size);
+	vec4 mrt = texture(u_met_rough_tex, get_tiling_uv(uv, u_specular_anim_size));
 	mat.roughness = (1.0- mrt.r);
     //mat.roughness = mat.roughness * mat.roughness;
 	mat.metalness = mrt.g;
 
-	mat.albedo = texture(u_texture, uv).rgb;
+	mat.albedo = texture(u_texture, get_tiling_uv(uv, u_albedo_anim_size)).rgb;
     //mat.albedo = de_gamma(u_color.rgb * texture(u_texture, uv).rgb);
 
-	vec4 N = texture( u_normal_tex, v_uv );
+	vec2 normal_uv = uv / u_normal_anim_size;
+	vec4 N = texture( u_normal_tex, get_tiling_uv(uv, u_normal_anim_size));
 	mat.normal = normalize((2.0 * N.rgb) - 1.0);
 	mat.normal = normalize(perturbNormal(normalize(v_face_normal), normalize( - v_world_position), v_uv, N.rgb));
     mat.height = N.a;

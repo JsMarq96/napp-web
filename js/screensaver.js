@@ -43,6 +43,9 @@ function init_webgl_screensaver() {
 
     void main() {
         frag_color = texture(u_texture, v_uv);
+        if (frag_color.a < 0.01) {
+          discard;
+        }
     }`;
 
   const quad_vert_shader = `#version 300 es
@@ -227,7 +230,7 @@ function init_webgl_screensaver() {
     glMatrix.mat4.multiply(vp_mat, proj_mat, vp_mat);
 
     // Render to FBO
-    {
+    /*{
       gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
       gl.viewport(0, 0, screensaver_canvas.width, screensaver_canvas.height);
       // Clean prev, frame
@@ -262,7 +265,7 @@ function init_webgl_screensaver() {
       gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_INT, index_buffer);
 
       //gl.enable(gl.BLEND);
-    }
+    }*/
 
     {
       // Bind the canvas back
@@ -272,7 +275,7 @@ function init_webgl_screensaver() {
       gl.clearColor(1.0, 1.0, 1.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
 
-      gl.disable(gl.BLEND);
+      /*gl.disable(gl.BLEND);
       //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
       gl.useProgram(post_proc_shader);
@@ -281,7 +284,7 @@ function init_webgl_screensaver() {
       bindTexture(gl, post_proc_shader, "u_text", fbo_color, 0);
       gl.drawElements(gl.TRIANGLES, 6,
                       gl.UNSIGNED_INT,
-                      index_buffer);
+                      index_buffer);*/
 
       // Borders
       gl.useProgram(program);

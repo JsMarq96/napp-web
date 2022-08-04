@@ -1,4 +1,4 @@
-import {  createShader, bindMat4Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture } from './shader_funcs.js'
+import {  createShader, bindMat4Uniform, bindFloatUniform, bindVec2Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture } from './shader_funcs.js'
 import { texture_load } from "./texture_utils.js"
 import {block_vertex, block_fragment} from "./shaders/block_shaders.js"
 import { blocks } from "./blocks.js"
@@ -73,6 +73,37 @@ function init_block_renderer() {
   glMatrix.mat3.identity(base_rotation);
 
   //
+  //
+  var is_clicked = false;
+  function on_press(el) {
+    document.onmousemove = on_drag;
+    document.onmouseup = on_realese;
+    canvas.start_pos_x = el.clientX;
+    canvas.start_pos_y = el.clientY;
+
+    canvas.onmouseleave = on_realese;
+
+    is_clicked = true;
+  }
+
+  function on_drag(element) {
+    var el = canvas;
+    const new_x = el.start_pos_x - element.clientX;
+    const new_y = el.start_pos_y - element.clientY;
+    el.start_pos_x = element.clientX;
+    el.start_pos_y = element.clientY;
+
+    glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, [-1.0, 0.0, 0.0]);
+    glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, [0.0, -1.0, 0.0]);
+  }
+
+  function on_realese() {
+    document.onmousemove = null;
+    is_clicked = false;
+  }
+
+  canvas.onmousedown = on_press;
+
   var selected_block = 0;
   var textures = [];
 
@@ -84,6 +115,8 @@ function init_block_renderer() {
     {name: "bottom", normal: [0.0, -1.0, 0.0]},
     {name: "top", normal: [0.0, 1.0, 0.0]},
   ];
+
+  var time_start = Date.now();
 
   (function render(elapsed_time) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -100,7 +133,10 @@ function init_block_renderer() {
       canvas.height = displayHeight;
     }
 
-     glMatrix.mat4.rotate(model, model, 0.70 * 0.0174533, [0.0, 1.0, 0.0]);
+    if (!is_clicked) {
+      glMatrix.mat4.rotate(model, model, 0.70 * 0.0174533, [0.0, 1.0, 0.0]);
+    }
+    //glMatrix.mat4.rotate(model, model, 0.70 * 0.0174533, [0.0, 1.0, 0.0]);
 
     var aspect_ratio = canvas.width / canvas.height;
 
@@ -113,7 +149,7 @@ function init_block_renderer() {
 
 
     var up = [0.0, 1.0, 0.0];
-    var eye = [0.0, 0.0 , 2.0];
+    var eye = [0.0, 0.0, 3.0];
     var center = [0.0, 0.0, 0.0];
 
     glMatrix.mat4.lookAt(view_mat,
@@ -158,8 +194,14 @@ function init_block_renderer() {
                                                      };
         }
 
+        var tim = (((Date.now()) - time_start) ) ;
+
         bindMat4Uniform(gl, program, "u_model_mat", model);
         bindVec3Uniform(gl, program, "u_face_normal", faces[i].normal);
+        bindVec2Uniform(gl, program, "u_albedo_anim_size", blocks[0][faces[i].name].albedo.size);
+        bindVec2Uniform(gl, program, "u_normal_anim_size", blocks[0][faces[i].name].normal.size);
+        bindVec2Uniform(gl, program, "u_specular_anim_size", blocks[0][faces[i].name].specular.size);
+        bindFloatUniform(gl, program, "u_time", tim);
         bindTexture(gl, program, "u_texture", textures[blocks[0].name + faces[i].name].albedo, 0);
         bindTexture(gl, program, "u_normal_tex", textures[blocks[0].name + faces[i].name].normal, 1);
         bindTexture(gl, program, "u_met_rough_tex", textures[blocks[0].name + faces[i].name].specular, 2);
