@@ -93,8 +93,14 @@ function init_block_renderer() {
     el.start_pos_x = element.clientX;
     el.start_pos_y = element.clientY;
 
-    glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, [-1.0, 0.0, 0.0]);
-    glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, [0.0, -1.0, 0.0]);
+    var y_axis = [-1.0, 0.0, 0.0];
+    var x_axis = [0.0, -1.0, 0.0];
+
+    glMatrix.vec3.transformMat4(y_axis, y_axis, model);
+    glMatrix.vec3.transformMat4(x_axis, x_axis, model);
+
+    glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, y_axis);
+    glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, x_axis);
   }
 
   function on_realese() {

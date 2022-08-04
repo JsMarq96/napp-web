@@ -205,15 +205,57 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 	return ((specular + diffuse));
 }
 
+// POM ========================
+float get_height(vec2 uv_coords) {
+	return 1.0 - (texture(u_normal_tex, uv_coords).a * 2.0 - 1.0);
+}
+
+/**
+* Iterate through the heighmap with the direction of the tangential view vector
+* NOTE: There is some artifacts on some extrems parts that a simple smoothing could not solve
+*       But increasing the resolution of the POM effect makes it a bit better
+*/
+vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
+    float map_depth = get_height(base_coords);
+    float layer_depth = 0.0;
+    float prev_layer_depth = 0.0;
+    // Step depth size
+    float layer_step = 1.0 / 32.0;
+    // Starting point
+    vec2 it_coords = base_coords;
+    vec2 prev_coords = vec2(0);
+    // Direction for the layer look up
+    vec2 step_vector = ((-view_vector.xy) * 0.334) / 124.0;
+
+    // Early stop
+    if (map_depth == 0.0) {
+        return it_coords;
+    }
+
+    // Traverse the layers until you find that you went too low
+    for(; layer_depth < 1.0 && map_depth > layer_depth; layer_depth += layer_step) {
+        prev_coords = it_coords;
+        it_coords -= step_vector;
+        map_depth = get_height(it_coords);
+    }
+
+    // Smooth between the current and previus layer's depths based on the actual depth
+    return mix(it_coords, prev_coords, (layer_depth - map_depth) / layer_step );
+}
 
 void main() {
-    sFragData frag_data = getDataOfFragment(v_uv);
+	vec3 view = normalize(u_camera_pos - v_world_position);
+	mat3 inv_TBN = transpose(cotangent_frame(normalize(v_face_normal), view, v_uv));
+    vec3 tangent_view = inv_TBN * view;
+	vec2 pom_uv = get_POM_coords(v_uv, tangent_view);
+    sFragData frag_data = getDataOfFragment(pom_uv);
     sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
 	vec3 light_component = light_vects.n_dot_l * vec3(1.0) * 10.0;
 
     frag_color = vec4(get_pbr_color(frag_data, light_vects) * light_component, 1.0);
 	//frag_color = vec4(normalize(frag_data.normal), 1.0);
+	//frag_color = vec4(frag_data.height, 0.0, 0.0, 1.0);
 }
 `;
 
