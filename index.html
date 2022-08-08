@@ -69,7 +69,6 @@
          position:absolute;
      }
 
-
      #steve {
          width: 300px;
          height: 400px;
@@ -101,6 +100,28 @@
         border-style: solid;
         border-color: black;
     }
+
+
+
+    #taskbar {
+        background-color: black;
+        width:95%;
+        height: 35px;
+        left: 2.5%;
+        bottom: 10px;
+        position:absolute;
+    }
+
+    #taskbar #clock {
+        color: white;
+        border-style:solid;
+        border-color: white;
+        width: 120px;
+        height: calc(100% - 8px);
+        right:1px;
+        top: 1px;
+        position: absolute;
+    }
   </style>
 
 
@@ -115,7 +136,8 @@
         </div>
 
         <div id="visualization" class="dragable_windows">
-            <div class="window_title" ></div>
+            <div class="window_title" >
+            </div>
             <div class="window_body">
                 <canvas id="block-canvas"></canvas>
                 <div id="block-selector"></div>
@@ -127,11 +149,13 @@
 
       </div>
 
+      <div id="taskbar"> <div id="clock"> </div></div>
     </div>
 <script src="js/webgl-debug.js"></script>
     <script src="js/third-party/gl-matrix-min.js"></script>
    <script type="module">
-
+     // Clock
+     
      import { makeWindowDragable } from "./js/drag_drop.js";
      // Window Dragging
      var windows = document.getElementsByClassName("dragable_windows");
@@ -145,6 +169,8 @@
      import { init_webgl_screensaver } from "./js/screensaver.js";
      import { init_steve_head } from "./js/steve_head.js";
      import { init_block_renderer } from "./js/block_renderer.js"; // 92.5
+     import { init_clock_animation } from "./js/clock.js";
+     init_clock_animation();
      init_webgl_screensaver();
      init_steve_head();
      init_block_renderer();
