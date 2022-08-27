@@ -35,6 +35,7 @@ uniform float u_time;
 uniform vec2 u_albedo_anim_size;
 uniform vec2 u_normal_anim_size;
 uniform vec2 u_specular_anim_size;
+uniform float u_render_mode;
 
 in vec3 v_face_normal;
 in vec2 v_uv;
@@ -207,7 +208,7 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 
 // POM ========================
 float get_height(vec2 uv_coords) {
-	return (texture(u_normal_tex, uv_coords).a * 2.0 - 1.0);
+	return 1.0 - (texture(u_normal_tex, uv_coords).a * 2.0 - 1.0);
 }
 
 /**
@@ -217,7 +218,7 @@ float get_height(vec2 uv_coords) {
 */
 
 const float POM_resolution = 64.0;
-const float POM_depth = 0.030;
+const float POM_depth = 0.090;
 vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
     float map_depth = get_height(base_coords);
     float layer_depth = 0.0;
@@ -238,7 +239,7 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
     // Traverse the layers until you find that you went too low
     for(; layer_depth < 1.0 && map_depth > layer_depth; layer_depth += layer_step) {
         prev_coords = it_coords;
-        it_coords -= step_vector;
+        it_coords += step_vector;
         map_depth = get_height(it_coords);
     }
 
@@ -252,13 +253,14 @@ void main() {
     vec3 tangent_view = inv_TBN * view;
 	vec2 pom_uv = get_POM_coords(v_uv, tangent_view);
     sFragData frag_data = getDataOfFragment(pom_uv);
-    sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
-	vec3 light_component = light_vects.n_dot_l * vec3(1.0) * 10.0;
+    if (u_render_mode == 0.0) {
+      sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
-    frag_color = vec4(get_pbr_color(frag_data, light_vects) * light_component, 1.0);
-	//frag_color = vec4(normalize(frag_data.normal), 1.0);
-	//frag_color = vec4(frag_data.height, 0.0, 0.0, 1.0);
+ 	  vec3 light_component = light_vects.n_dot_l * vec3(1.0) * 10.0;
+
+      frag_color = vec4(get_pbr_color(frag_data, light_vects) * light_component, 1.0);
+    }
 }
 `;
 
