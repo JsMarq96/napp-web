@@ -217,6 +217,7 @@ function init_block_renderer() {
     glMatrix.mat4.multiply(vp_mat, proj_mat, vp_mat);
 
     // Calculate light position
+    // NOTE this is a hack... an inverse transform would be much nicer
     var light_pos = glMatrix.vec3.fromValues((light_icon.offsetLeft - (displayHeight / 2.0)) / 2.0,
                                              (-light_icon.offsetTop + (displayWidth / 2.0)) / 2.0,
                                              20.0);
