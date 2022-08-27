@@ -82,14 +82,29 @@
         height: 700px;
     }
 
+    #block-overlay {
+        width: 60%;
+        height: 100%;
+        z-index: 5;
+        position: absolute;
+        top: 0px;
+        left: 0px;
+    }
+    
     #block-canvas {
         width: 60%;
         height: 100%;
+        z-index: 2;
     }
 
     #block_visualization {
         width: 100%;
         height: 100%;
+    }
+
+    #visualization_light {
+        width: 70px;
+        position: absolute;
     }
 
     #block-selector {
@@ -139,8 +154,13 @@
             <div class="window_title" >
             </div>
             <div class="window_body">
+                <div id="block-overlay"> <img id="visualization_light" src="/img/bulb.png" /> </div>
                 <canvas id="block-canvas"></canvas>
-                <div id="block-selector"></div>
+                <div id="block-selector">
+                  <div id="select_result" class="selector_area"> Result</div>
+                  <div id="select_normal" class="selector_area">Normal </div>
+                  <div id="select_specular" class="selector_area">Specular </div>
+                </div>
             </div>
         </div>
 

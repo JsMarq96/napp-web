@@ -110,6 +110,41 @@ function init_block_renderer() {
 
   canvas.onmousedown = on_press;
 
+
+  // LIGHT POS ============
+  let light_icon = document.getElementById("visualization_light");
+  var is_clicked_light = false;
+  function on_press_light(el) {
+    document.onmousemove = on_drag_light;
+    document.onmouseup = on_realese_light;
+    canvas.start_pos_x = el.clientX;
+    canvas.start_pos_y = el.clientY;
+
+    canvas.onmouseleave = on_realese_light;
+
+    is_clicked_light = true;
+    console.log("Test");
+  }
+
+  function on_drag_light(element) {
+    var el = light_icon;
+    const new_x = el.start_pos_x - element.clientX;
+    const new_y = el.start_pos_y - element.clientY;
+    el.start_pos_x = element.clientX;
+    el.start_pos_y = element.clientY;
+    el.style.left = (el.offsetLeft - new_x) + "px";
+    el.style.top = (el.offsetTop - new_y) + "px";
+  }
+
+  function on_realese_light() {
+    document.onmousemove = null;
+    is_clicked_light = false;
+  }
+
+  light_icon.onmousedown = on_press_light;
+  light_icon.ondragstart = function() { return false; };
+
+
   var selected_block = 0;
   var textures = [];
 
@@ -123,6 +158,19 @@ function init_block_renderer() {
   ];
 
   var time_start = Date.now();
+  var render_mode = 0.0;
+  // Onlcik events
+  document.getElementById("select_result").onmousedown = function () {
+    render_mode = 0.0;
+  };
+  document.getElementById("select_normal").onmousedown  = function () {
+    render_mode = 1.0;
+  };
+  document.getElementById("select_specular").onmousedown  = function () {
+    render_mode = 2.0;
+  };
+
+  // Render
 
   (function render(elapsed_time) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -168,6 +216,10 @@ function init_block_renderer() {
     glMatrix.mat4.multiply(vp_mat, view_mat,vp_mat);
     glMatrix.mat4.multiply(vp_mat, proj_mat, vp_mat);
 
+    // Calculate light position
+    var light_pos = glMatrix.vec3.fromValues((light_icon.offsetLeft - (displayHeight / 2.0)) / 2.0,
+                                             (-light_icon.offsetTop + (displayWidth / 2.0)) / 2.0,
+                                             20.0);
     // Render
     {
       gl.viewport(0, 0, canvas.width, canvas.height);
@@ -186,8 +238,9 @@ function init_block_renderer() {
       gl.bindVertexArray(vao);
 
       bindMat4Uniform(gl, program, "u_vp_mat", vp_mat);
-      bindVec3Uniform(gl, program, "u_light_pos", [5.,5.0, 10.0]);
+      bindVec3Uniform(gl, program, "u_light_pos", light_pos);
       bindVec3Uniform(gl, program, "u_camera_pos", eye);
+      bindFloatUniform(gl, program, "u_render_mode", render_mode)
 
       //console.log(normal);
 

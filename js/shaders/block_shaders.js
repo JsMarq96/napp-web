@@ -252,15 +252,19 @@ void main() {
 	mat3 inv_TBN = transpose(cotangent_frame(normalize(v_face_normal), view, v_uv));
     vec3 tangent_view = inv_TBN * view;
 	vec2 pom_uv = get_POM_coords(v_uv, tangent_view);
-    sFragData frag_data = getDataOfFragment(pom_uv);
 
     if (u_render_mode == 0.0) {
+      sFragData frag_data = getDataOfFragment(pom_uv);
       sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
- 	  vec3 light_component = light_vects.n_dot_l * vec3(1.0) * 10.0;
+ 	  vec3 light_component = vec3(3.56) + (light_vects.n_dot_l * vec3(1.0) * 10.0);
 
       frag_color = vec4(get_pbr_color(frag_data, light_vects) * light_component, 1.0);
-    }
+     } else if (u_render_mode == 1.0) {
+       frag_color = vec4(texture(u_normal_tex, pom_uv).rgb, 1.0);
+     }  else if (u_render_mode == 2.0) {
+       frag_color = vec4(texture(u_met_rough_tex, pom_uv).rgb, 1.0);
+     }
 }
 `;
 
