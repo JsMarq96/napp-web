@@ -215,17 +215,20 @@ float get_height(vec2 uv_coords) {
 * NOTE: There is some artifacts on some extrems parts that a simple smoothing could not solve
 *       But increasing the resolution of the POM effect makes it a bit better
 */
+
+const float POM_resolution = 64.0;
+const float POM_depth = 0.030;
 vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
     float map_depth = get_height(base_coords);
     float layer_depth = 0.0;
     float prev_layer_depth = 0.0;
     // Step depth size
-    float layer_step = 1.0 / 32.0;
+    float layer_step = 1.0 / POM_resolution;
     // Starting point
     vec2 it_coords = base_coords;
     vec2 prev_coords = vec2(0);
     // Direction for the layer look up
-    vec2 step_vector = ((-view_vector.xy) * 0.134) / 124.0;
+    vec2 step_vector = ((-view_vector.xy) * POM_depth) / POM_resolution;
 
     // Early stop
     if (map_depth == 0.0) {
