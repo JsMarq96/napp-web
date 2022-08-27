@@ -88,8 +88,8 @@ mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv){
 	vec2 duv2 = dFdy( uv );
 
 	// solve the linear system
-	vec3 dp2perp = cross( dp2, N );
-	vec3 dp1perp = cross( N, dp1 );
+	vec3 dp2perp = cross( N,dp2);
+	vec3 dp1perp = cross( dp1, N );
 	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
 	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
 
@@ -207,7 +207,7 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 
 // POM ========================
 float get_height(vec2 uv_coords) {
-	return 1.0 - (texture(u_normal_tex, uv_coords).a * 2.0 - 1.0);
+	return (texture(u_normal_tex, uv_coords).a * 2.0 - 1.0);
 }
 
 /**
@@ -225,7 +225,7 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
     vec2 it_coords = base_coords;
     vec2 prev_coords = vec2(0);
     // Direction for the layer look up
-    vec2 step_vector = ((-view_vector.xy) * 0.334) / 124.0;
+    vec2 step_vector = ((-view_vector.xy) * 0.134) / 124.0;
 
     // Early stop
     if (map_depth == 0.0) {
