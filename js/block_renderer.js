@@ -114,6 +114,9 @@ function init_block_renderer() {
   // LIGHT POS ============
   let light_icon = document.getElementById("visualization_light");
   var is_clicked_light = false;
+  // Calculate light position
+    // NOTE this is a hack... an inverse transform would be much nicer
+  var light_pos = glMatrix.vec3.fromValues(-8.0, 5.0, 10.0);
   function on_press_light(el) {
     document.onmousemove = on_drag_light;
     document.onmouseup = on_realese_light;
@@ -132,8 +135,24 @@ function init_block_renderer() {
     const new_y = el.start_pos_y - element.clientY;
     el.start_pos_x = element.clientX;
     el.start_pos_y = element.clientY;
+
     el.style.left = (el.offsetLeft - new_x) + "px";
     el.style.top = (el.offsetTop - new_y) + "px";
+
+    var y_axis = [-1.0, 0.0, 0.0];
+    var x_axis = [0.0, -1.0, 0.0];
+
+    if (!isNaN(new_x) && new_x != 0) {
+      glMatrix.vec3.rotateY(light_pos, light_pos, [0.5, 0.5, 0.5], (-new_x) * 0.5 * 0.0174533);
+      console.log(new_x, light_pos);
+    }
+    if (!isNaN(new_y) && new_y != 0) {
+      glMatrix.vec3.rotateX(light_pos, light_pos, [0.5, 0.5, 0.5], (-new_y) * 0.5 * 0.0174533);
+      console.log(new_x, light_pos);
+    }
+        //glMatrix.vec3.rotateY(light_pos, light_pos, [0.0, 0.50, 0.0], new_y * 0.05 * 0.0174533);
+
+
   }
 
   function on_realese_light() {
@@ -187,7 +206,7 @@ function init_block_renderer() {
       canvas.height = displayHeight;
     }
 
-    if (!is_clicked) {
+    if (false) {
       glMatrix.mat4.rotate(model, model, 0.70 * 0.0174533, [0.0, 1.0, 0.0]);
     }
     //glMatrix.mat4.rotate(model, model, 0.70 * 0.0174533, [0.0, 1.0, 0.0]);
@@ -216,11 +235,6 @@ function init_block_renderer() {
     glMatrix.mat4.multiply(vp_mat, view_mat,vp_mat);
     glMatrix.mat4.multiply(vp_mat, proj_mat, vp_mat);
 
-    // Calculate light position
-    // NOTE this is a hack... an inverse transform would be much nicer
-    var light_pos = glMatrix.vec3.fromValues((light_icon.offsetLeft - (displayHeight / 2.0)) / 2.0,
-                                             (-light_icon.offsetTop + (displayWidth / 2.0)) / 2.0,
-                                             20.0);
     // Render
     {
       gl.viewport(0, 0, canvas.width, canvas.height);
