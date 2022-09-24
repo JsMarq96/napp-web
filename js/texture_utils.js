@@ -31,4 +31,46 @@ function texture_load(gl, dir) {
   return texture;
 }
 
-export {texture_load};
+function texture_load_cubemap(gl, cubemap) {
+  const face_indices = [
+    gl.TEXTURE_CUBE_MAP_POSITIVE_X,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_X,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Y,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    gl.TEXTURE_CUBE_MAP_POSITIVE_Z,
+    gl.TEXTURE_CUBE_MAP_NEGATIVE_Z
+  ];
+
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+
+  for(var i = 0; i < 6; i++) {
+    gl.texImage2D(face_indices[i],
+                  0,
+                  gl.RGBA,
+                  cubemap.size, cubemap.size,
+                  0,
+                  GL.RGBA,
+                  gl.UNSIGNED_BYTE);
+    const image = new Image();
+    image.onload = function() {
+      gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
+      gl.texImage2D(face_indices[i],
+                    0,
+                    gl.RGBA,
+                    gl.RGBA,
+                    gl.UNSIGNED_BYTE,
+                    image);
+      gl.generateMipMap(gl.TEXTURE_CUBE_MAP);
+    };
+
+    img.src = cubemap.base_url + cubemap.imgs_url[i];
+  }
+
+  gl.generateMipMap(gl.TEXTURE_CUBE_MAP);
+  gl.texParemeteri(gl.TEXTURE_CUBE_MAP,
+                   gl.TEXTURE_MIN_FILTER,
+                   gl.LINEAR_MIPMAP_LINEAR);
+}
+
+export {texture_load, texture_load_cubemap};
