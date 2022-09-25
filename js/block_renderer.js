@@ -1,8 +1,10 @@
 import {  createShader, bindMat4Uniform, bindFloatUniform, bindVec2Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture } from './shader_funcs.js'
-import { texture_load } from "./texture_utils.js"
+import { texture_load, texture_load_cubemap } from "./texture_utils.js"
 import {block_vertex, block_fragment} from "./shaders/block_shaders.js"
 import { blocks } from "./blocks.js"
 import { block_model, block_indices } from "./meshes/block.js"
+import { cubemaps } from "./cubemaps.js"
+import { skybox_init, skybox_render} from "./skybox_render.js"
 
 function get_rotation_matrix(origin_normal, destination_normal) {
   var rotation_mat = glMatrix.mat4.create();
@@ -117,52 +119,6 @@ function init_block_renderer() {
   // Calculate light position
     // NOTE this is a hack... an inverse transform would be much nicer
   var light_pos = glMatrix.vec3.fromValues(-8.0, 5.0, 10.0);
-  function on_press_light(el) {
-    document.onmousemove = on_drag_light;
-    document.onmouseup = on_realese_light;
-    canvas.start_pos_x = el.clientX;
-    canvas.start_pos_y = el.clientY;
-
-    canvas.onmouseleave = on_realese_light;
-
-    is_clicked_light = true;
-    console.log("Test");
-  }
-
-  function on_drag_light(element) {
-    var el = light_icon;
-    const new_x = el.start_pos_x - element.clientX;
-    const new_y = el.start_pos_y - element.clientY;
-    el.start_pos_x = element.clientX;
-    el.start_pos_y = element.clientY;
-
-    el.style.left = (el.offsetLeft - new_x) + "px";
-    el.style.top = (el.offsetTop - new_y) + "px";
-
-    var y_axis = [-1.0, 0.0, 0.0];
-    var x_axis = [0.0, -1.0, 0.0];
-
-    if (!isNaN(new_x) && new_x != 0) {
-      glMatrix.vec3.rotateY(light_pos, light_pos, [0.5, 0.5, 0.5], (-new_x) * 0.5 * 0.0174533);
-      console.log(new_x, light_pos);
-    }
-    if (!isNaN(new_y) && new_y != 0) {
-      glMatrix.vec3.rotateX(light_pos, light_pos, [0.5, 0.5, 0.5], (-new_y) * 0.5 * 0.0174533);
-      console.log(new_x, light_pos);
-    }
-        //glMatrix.vec3.rotateY(light_pos, light_pos, [0.0, 0.50, 0.0], new_y * 0.05 * 0.0174533);
-
-
-  }
-
-  function on_realese_light() {
-    document.onmousemove = null;
-    is_clicked_light = false;
-  }
-
-  light_icon.onmousedown = on_press_light;
-  light_icon.ondragstart = function() { return false; };
-
 
   var selected_block = 0;
   var textures = [];
@@ -190,6 +146,8 @@ function init_block_renderer() {
   };
 
   // Render
+  var cubemap_texture = texture_load_cubemap(gl, cubemaps[0]);
+  let skybox_module = skybox_init(gl);
 
   (function render(elapsed_time) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -239,14 +197,18 @@ function init_block_renderer() {
     {
       gl.viewport(0, 0, canvas.width, canvas.height);
       // Clean prev, frame
-      gl.clearColor(0.0, 0.0, 0.0, 0.0);
+      gl.clearColor(0.0, 1.0, 1.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
 
       // Enable blending
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      //gl.enable(gl.FACE_CULLING);
-      //gl.cullFace(gl.FRONT);
+
+      // Render Skybox
+      skybox_render(gl, skybox_module, vp_mat, eye, cubemap_texture);
+
+
       gl.enable(gl.DEPTH_TEST);
 
       gl.useProgram(program);
@@ -282,12 +244,10 @@ function init_block_renderer() {
 
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT,  2 * 6 * i);
       }
-
-
-      //gl.enable(gl.BLEND);
     }
 
     requestAnimationFrame(render);
+
   })();
 }
 

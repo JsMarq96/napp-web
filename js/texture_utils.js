@@ -50,27 +50,27 @@ function texture_load_cubemap(gl, cubemap) {
                   gl.RGBA,
                   cubemap.size, cubemap.size,
                   0,
-                  GL.RGBA,
-                  gl.UNSIGNED_BYTE);
+                  gl.RGBA,
+                  gl.UNSIGNED_BYTE, null);
+    const target = face_indices[i];
     const image = new Image();
     image.onload = function() {
       gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture);
-      gl.texImage2D(face_indices[i],
+      gl.texImage2D(target,
                     0,
                     gl.RGBA,
                     gl.RGBA,
                     gl.UNSIGNED_BYTE,
                     image);
-      gl.generateMipMap(gl.TEXTURE_CUBE_MAP);
+
+      gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
     };
 
-    img.src = cubemap.base_url + cubemap.imgs_url[i];
+    image.src = cubemap.base_url + cubemap.imgs_url[i];
   }
 
-  gl.generateMipMap(gl.TEXTURE_CUBE_MAP);
-  gl.texParemeteri(gl.TEXTURE_CUBE_MAP,
-                   gl.TEXTURE_MIN_FILTER,
-                   gl.LINEAR_MIPMAP_LINEAR);
+  gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
+  gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 }
 
 export {texture_load, texture_load_cubemap};

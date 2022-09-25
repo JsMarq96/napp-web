@@ -268,4 +268,18 @@ void main() {
 }
 `;
 
-export {block_vertex, block_fragment};
+
+let skybox_fragment =`#version 300 es
+precision highp float;
+uniform vec3 u_camera_pos;
+uniform samplerCube u_texture;
+in vec3 v_world_position;
+out vec4 frag_color;
+void main() {
+   vec3 V = normalize(v_world_position - u_camera_pos);
+   frag_color = vec4(texture(u_texture, V).rgb, 1.0);
+   //frag_color = vec4(1.0, 1.0, 0.0, 1.0);
+}
+`;
+
+export {block_vertex, block_fragment, skybox_fragment};
