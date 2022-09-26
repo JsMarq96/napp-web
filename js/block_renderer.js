@@ -148,6 +148,7 @@ function init_block_renderer() {
   // Render
   var cubemap_texture = texture_load_cubemap(gl, cubemaps[0]);
   let skybox_module = skybox_init(gl);
+  var brdf_LUT = texture_load(gl, "./../img/brdfLUT.png");
 
   (function render(elapsed_time) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
@@ -208,7 +209,6 @@ function init_block_renderer() {
       // Render Skybox
       skybox_render(gl, skybox_module, vp_mat, eye, cubemap_texture);
 
-
       gl.enable(gl.DEPTH_TEST);
 
       gl.useProgram(program);
@@ -217,9 +217,9 @@ function init_block_renderer() {
       bindMat4Uniform(gl, program, "u_vp_mat", vp_mat);
       bindVec3Uniform(gl, program, "u_light_pos", light_pos);
       bindVec3Uniform(gl, program, "u_camera_pos", eye);
-      bindFloatUniform(gl, program, "u_render_mode", render_mode)
+      bindFloatUniform(gl, program, "u_render_mode", render_mode);
+      bindTexture(gl, program, "u_brdf_LUT", brdf_LUT, 5);
 
-      //console.log(normal);
 
       for(var i = 0; i < 6; i++) {
 
@@ -241,6 +241,7 @@ function init_block_renderer() {
         bindTexture(gl, program, "u_texture", textures[blocks[0].name + faces[i].name].albedo, 0);
         bindTexture(gl, program, "u_normal_tex", textures[blocks[0].name + faces[i].name].normal, 1);
         bindTexture(gl, program, "u_met_rough_tex", textures[blocks[0].name + faces[i].name].specular, 2);
+        bindTexture(gl, program, "u_enviorment_map", cubemap_texture, 3);
 
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT,  2 * 6 * i);
       }

@@ -27,6 +27,8 @@ uniform vec3 u_camera_pos;
 uniform sampler2D u_texture;
 uniform sampler2D u_normal_tex;
 uniform sampler2D u_met_rough_tex;
+uniform samplerCube u_enviorment_map;
+uniform sampler2D u_brdf_LUT;
 
 uniform vec3 u_light_pos;
 
@@ -195,15 +197,31 @@ vec3 specular_BRDF(const in sFragData data, const in sFragVects vectors) {
 	return vec3(D * F * G) / normalization;
 }
 
+vec3 get_reflection_color(in vec3 vector, float roughness) {
+   // Note, withour PREMS, dirty aprox
+   float lod = roughness * 6.0;
+
+   return mix(texture(u_enviorment_map, vector, max(lod - 1.0, 0.0)).rgb, texture(u_enviorment_map, vector, lod).rgb, roughness) / 4.0;
+}
 
 // PBR ========= =========
 vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 	vec3 diffuse_color = mix(data.albedo, vec3(0.0), data.metalness);
 
-	vec3 specular = specular_BRDF(data, vects);
+	vec3 specular = specular_BRDF(data, vects);// *
 	vec3 diffuse = diffuse_color / PI; // Lambertian BRDF cuz cheap
 
-	return ((specular + diffuse));
+    // IBL
+    vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness)).rg;
+    vec3 fresnel_IBL = fresnel_schlick(vects.n_dot_v, data.f0, data.roughness);
+    vec3 specular_sample = get_reflection_color(data.normal, data.roughness);
+
+    vec3 diffuse_IBL = get_reflection_color(data.normal, 1.0) * (1.0 - fresnel_IBL);
+
+    vec3 specular_IBL = ((fresnel_IBL * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
+
+	return (( diffuse + specular) + ( specular_IBL));
+    return ((specular_IBL));
 }
 
 // POM ========================
@@ -265,6 +283,9 @@ void main() {
      }  else if (u_render_mode == 2.0) {
        frag_color = vec4(texture(u_met_rough_tex, pom_uv).rgb, 1.0);
      }
+
+     //frag_color = vec4(get_reflection_color(reflect(view, v_face_normal), 0.5), 1.0);
+     //frag_color = vec4(texture(u_brdf_LUT, v_uv).rgb, 1.0);
 }
 `;
 
@@ -277,7 +298,7 @@ in vec3 v_world_position;
 out vec4 frag_color;
 void main() {
    vec3 V = normalize(v_world_position - u_camera_pos);
-   frag_color = vec4(texture(u_texture, V).rgb, 1.0);
+   frag_color = vec4(texture(u_texture, V, 4.0).rgb, 1.0);
    //frag_color = vec4(1.0, 1.0, 0.0, 1.0);
 }
 `;
