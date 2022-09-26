@@ -199,9 +199,9 @@ vec3 specular_BRDF(const in sFragData data, const in sFragVects vectors) {
 
 vec3 get_reflection_color(in vec3 vector, float roughness) {
    // Note, withour PREMS, dirty aprox
-   float lod = roughness * 6.0;
+   float lod = 1.0 + roughness * 6.0;
 
-   return mix(texture(u_enviorment_map, vector, max(lod - 1.0, 0.0)).rgb, texture(u_enviorment_map, vector, lod).rgb, roughness) / 4.0;
+   return mix(texture(u_enviorment_map, vector, max(lod - 1.0, 0.0)).rgb, texture(u_enviorment_map, vector, lod).rgb, roughness) / 1.5;
 }
 
 // PBR ========= =========
@@ -220,7 +220,7 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 
     vec3 specular_IBL = ((fresnel_IBL * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
 
-	return (( diffuse + specular) + ( specular_IBL));
+	//return (( diffuse ) + ( specular_IBL));
     return ((specular_IBL));
 }
 
