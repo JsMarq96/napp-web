@@ -106,6 +106,7 @@ vec3 perturbNormal( vec3 N, vec3 V, vec2 texcoord, vec3 normal_pixel ) {
 	mat3 TBN = cotangent_frame(N, V, texcoord);
 	return normalize(TBN * normal_pixel);
 }
+
 sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos) {
 	sFragVects vects;
 
@@ -132,6 +133,17 @@ vec2 get_tiling_uv(vec2 uv, vec2 uv_size) {
 	//return (uv / uv_size) + (vec2(mod((u_time / 1000.0), uv_size.s), mod((u_time / 1000.0), uv_size.t))  * 1.0 / uv_size);
 }
 
+const float GAMMA = 2.2;
+const float INV_GAMMA = 1.0 / GAMMA;
+
+vec3 gamma_to_linear(vec3 color) {
+	return pow(color, vec3(GAMMA));
+}
+
+vec3 linear_to_gamma(vec3 color) {
+	return pow(color, vec3(INV_GAMMA));
+}
+
 sFragData getDataOfFragment(const in vec2 uv) {
 	sFragData mat;
 
@@ -141,7 +153,7 @@ sFragData getDataOfFragment(const in vec2 uv) {
     //mat.roughness = mat.roughness * mat.roughness;
 	mat.metalness = mrt.g;
 
-	mat.albedo = texture(u_texture, get_tiling_uv(uv, u_albedo_anim_size)).rgb;
+	mat.albedo = linear_to_gamma(texture(u_texture, get_tiling_uv(uv, u_albedo_anim_size)).rgb);
     //mat.albedo = de_gamma(u_color.rgb * texture(u_texture, uv).rgb);
 
 	vec2 normal_uv = uv / u_normal_anim_size;
@@ -199,29 +211,35 @@ vec3 specular_BRDF(const in sFragData data, const in sFragVects vectors) {
 
 vec3 get_reflection_color(in vec3 vector, float roughness) {
    // Note, withour PREMS, dirty aprox
-   float lod = 1.0 + roughness * 6.0;
+   float lod = 0.0 + roughness * 4.0;
 
-   return mix(texture(u_enviorment_map, vector, max(lod - 1.0, 0.0)).rgb, texture(u_enviorment_map, vector, lod).rgb, roughness) / 1.5;
+   return mix(linear_to_gamma(texture(u_enviorment_map, vector, max(lod - 1.0, 0.0)).rgb), linear_to_gamma(texture(u_enviorment_map, vector, lod).rgb), roughness);
 }
 
-// PBR ========= =========
+// PBR ===================
 vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 	vec3 diffuse_color = mix(data.albedo, vec3(0.0), data.metalness);
 
 	vec3 specular = specular_BRDF(data, vects);// *
 	vec3 diffuse = diffuse_color / PI; // Lambertian BRDF cuz cheap
 
-    // IBL
+	//return vec3(0.0);
+	return diffuse + specular;
+}
+
+vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
     vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness)).rg;
     vec3 fresnel_IBL = fresnel_schlick(vects.n_dot_v, data.f0, data.roughness);
-    vec3 specular_sample = get_reflection_color(data.normal, data.roughness);
-
-    vec3 diffuse_IBL = get_reflection_color(data.normal, 1.0) * (1.0 - fresnel_IBL);
+    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, data.roughness).rgb);
 
     vec3 specular_IBL = ((fresnel_IBL * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
 
-	//return (( diffuse ) + ( specular_IBL));
-    return ((specular_IBL));
+	vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, -data.normal, 0.5).rgb) * (1.0 - fresnel_IBL);
+
+	//return vec3(0.0);
+	//return (specular) + diffuse;
+	//return (( diffuse_IBL ) + ( specular_IBL));
+    return (specular_IBL + diffuse_IBL);
 }
 
 // POM ========================
@@ -275,16 +293,16 @@ void main() {
       sFragData frag_data = getDataOfFragment(pom_uv);
       sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
- 	  vec3 light_component = vec3(3.56) + (light_vects.n_dot_l * vec3(1.0) * 10.0);
+ 	  vec3 light_component = linear_to_gamma(vec3(2.5)) + (light_vects.n_dot_l * linear_to_gamma(vec3(1.0)) * 0.80);
 
-      frag_color = vec4(get_pbr_color(frag_data, light_vects) * light_component, 1.0);
+      frag_color = vec4(gamma_to_linear(get_IBL_contribution(frag_data, light_vects) + get_pbr_color(frag_data, light_vects) * light_component), 1.0);
      } else if (u_render_mode == 1.0) {
        frag_color = vec4(texture(u_normal_tex, pom_uv).rgb, 1.0);
      }  else if (u_render_mode == 2.0) {
        frag_color = vec4(texture(u_met_rough_tex, pom_uv).rgb, 1.0);
      }
 
-     //frag_color = vec4(get_reflection_color(reflect(view, v_face_normal), 0.5), 1.0);
+     //rag_color = vec4(get_reflection_color(reflect(view, v_face_normal), 0.5), 1.0);
      //frag_color = vec4(texture(u_brdf_LUT, v_uv).rgb, 1.0);
 }
 `;
