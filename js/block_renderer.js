@@ -162,6 +162,11 @@ function init_block_renderer() {
   let skybox_module = skybox_init(gl);
   var brdf_LUT = texture_load(gl, "./../img/brdfLUT.png");
 
+  // Camera position
+  var up = [0.0, 1.0, 0.0];
+  var eye = [0.0, 0.0, 3.0];
+  var center = [0.0, 0.0, 0.0];
+
   (function render(elapsed_time) {
     // Lookup the size the browser is displaying the canvas in CSS pixels.
     const displayWidth  = canvas.clientWidth;
@@ -192,15 +197,23 @@ function init_block_renderer() {
     glMatrix.mat4.perspective(proj_mat, 90.0 * 0.0174533, aspect_ratio, 0.1, 100.0);
 
 
-    var up = [0.0, 1.0, 0.0];
-    var eye = [0.0, 0.0, 3.0];
-    var center = [0.0, 0.0, 0.0];
+    // Zoom
+    // Hijack the mouse screel event of the canvas,
+    // and moves teh camara pos along the front vector
+    canvas.onwheel = function (event) {
+      event.preventDefault();
+
+      var front = [center[0] - eye[0], center[1] - eye[1], center[2] - eye[2]];
+
+      eye[0] = eye[0] + front[0] * event.deltaY * 0.005;
+      eye[1] = eye[1] + front[1] * event.deltaY * 0.005;
+      eye[2] = eye[2] + front[2] * event.deltaY * 0.005;
+    }
 
     glMatrix.mat4.lookAt(view_mat,
                          eye,
                          center,
                          up);
-
 
     glMatrix.mat4.identity(vp_mat);
     glMatrix.mat4.multiply(vp_mat, view_mat,vp_mat);
