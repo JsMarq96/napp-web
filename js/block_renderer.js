@@ -32,6 +32,9 @@ function init_block_renderer() {
     //alpha: false
   });
 
+  gl.getExtension('OES_standard_derivatives');
+  gl.getExtension('EXT_shader_texture_lod');
+
   var program = createShader(gl, block_vertex, block_fragment);
 
   var vertex_buffer = gl.createBuffer();
