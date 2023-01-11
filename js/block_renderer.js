@@ -104,6 +104,11 @@ function init_block_renderer() {
     // the rotation axis X remains constant
     var x_axis = [0.0, -1.0, 0.0];
 
+    // Avoid appliying rotations at a low speed
+    if (Math.sqrt(new_x ** 2.0 + new_y ** 2.0) < 0.7) {
+      return;
+    }
+
     if (Math.abs(new_y) + 0.5 < Math.abs(new_x)) {
       glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, x_axis);
       glMatrix.vec3.rotateY(y_axis, y_axis, [0.0, 0.0, 0.0], new_x * 0.5 * 0.0174533);
