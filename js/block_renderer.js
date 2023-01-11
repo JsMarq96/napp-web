@@ -80,6 +80,8 @@ function init_block_renderer() {
   //
   //
   var is_clicked = false;
+  var y_axis = [-1.0, 0.0, 0.0];
+
   function on_press(el) {
     document.onmousemove = on_drag;
     document.onmouseup = on_realese;
@@ -93,19 +95,21 @@ function init_block_renderer() {
 
   function on_drag(element) {
     var el = canvas;
+    // Calculate cursor speed
     const new_x = el.start_pos_x - element.clientX;
     const new_y = el.start_pos_y - element.clientY;
     el.start_pos_x = element.clientX;
     el.start_pos_y = element.clientY;
 
-    var y_axis = [-1.0, 0.0, 0.0];
+    // the rotation axis X remains constant
     var x_axis = [0.0, -1.0, 0.0];
 
-    glMatrix.vec3.transformMat4(y_axis, y_axis, model);
-    glMatrix.vec3.transformMat4(x_axis, x_axis, model);
-
-    glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, y_axis);
-    glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, x_axis);
+    if (Math.abs(new_y) + 0.5 < Math.abs(new_x)) {
+      glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, x_axis);
+      glMatrix.vec3.rotateY(y_axis, y_axis, [0.0, 0.0, 0.0], new_x * 0.5 * 0.0174533);
+    } else {
+      glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, y_axis);
+    }
   }
 
   function on_realese() {
