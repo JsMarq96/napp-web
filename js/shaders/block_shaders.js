@@ -91,7 +91,7 @@ mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv){
 	vec2 duv2 = dFdy( uv );
 
 	// solve the linear system
-	vec3 dp2perp = cross( N,dp2);
+	vec3 dp2perp = cross( N, dp2);
 	vec3 dp1perp = cross( dp1, N );
 	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
 	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
@@ -230,11 +230,11 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
     vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness)).rg;
     vec3 fresnel_IBL = fresnel_schlick(vects.n_dot_v, data.f0, data.roughness);
-    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, 5.0 * data.roughness).rgb);
+    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, -vects.r, 5.0 * data.roughness).rgb);
 
     vec3 specular_IBL = ((fresnel_IBL * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
 
-	vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
+	vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, -vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
 
 	//return vec3(0.0);
 	//return (specular) + diffuse;
