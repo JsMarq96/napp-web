@@ -18,7 +18,8 @@ let block_vertex =`#version 300 es
     void main() {
 		v_face_normal = normalize(u_model_mat * vec4(a_normal, 0.0)).xyz;
         v_tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
-		vec3 b = normalize(cross(v_tangent, v_face_normal));
+		vec3 b = (cross(v_tangent, v_face_normal));
+		//b = (u_model_mat * vec4(b, 0.0)).xyz;
 		v_TBN = transpose(mat3(v_tangent, b, v_face_normal));
 
 		v_uv = a_uv;
