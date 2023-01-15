@@ -1,19 +1,27 @@
 
 let block_vertex =`#version 300 es
     layout(location = 0)in vec3 a_position;
-    layout(location = 1)in vec2 a_uv;
+	layout(location = 1)in vec3 a_normal;
+	layout(location = 2)in vec3 a_tangent;
+    layout(location = 3)in vec2 a_uv;
 
     out vec2 v_uv;
 	out vec3 v_world_position;
 	out vec3 v_face_normal;
+	out vec3 v_tangent;
+	out mat3 v_TBN;
 
     uniform mat4 u_model_mat;
     uniform mat4 u_vp_mat;
 	uniform vec3 u_face_normal;
 
     void main() {
-		v_face_normal = (u_model_mat * vec4(u_face_normal, 0.0)).xyz;
-        v_uv = a_uv;
+		v_face_normal = normalize(u_model_mat * vec4(a_normal, 0.0)).xyz;
+        v_tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
+		vec3 b = normalize(cross(v_tangent, v_face_normal));
+		v_TBN = transpose(mat3(v_tangent, b, v_face_normal));
+
+		v_uv = a_uv;
 		v_world_position = (u_model_mat * vec4(a_position, 1.0)).xyz;
         gl_Position = u_vp_mat * vec4(v_world_position, 1.0);
     }`;
@@ -42,6 +50,8 @@ uniform float u_render_mode;
 in vec3 v_face_normal;
 in vec2 v_uv;
 in vec3 v_world_position;
+in vec3 v_tangent;
+in mat3 v_TBN;
 out vec4 frag_color;
 
 const float PI =  3.14159265359;
@@ -83,28 +93,10 @@ struct sFragVects {
 };
 
 // Fill Datastructs =============
-mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv){
-	// get edge vectors of the pixel triangle
-	vec3 dp1 = dFdx( p );
-	vec3 dp2 = dFdy( p );
-	vec2 duv1 = dFdx( uv );
-	vec2 duv2 = dFdy( uv );
-
-	// solve the linear system
-	vec3 dp2perp = cross( N, dp2);
-	vec3 dp1perp = cross( dp1, N );
-	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
-
-	// construct a scale-invariant frame
-	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
-	return mat3( T * invmax, B * invmax, N );
-}
 
 vec3 perturbNormal( vec3 N, vec3 V, vec2 texcoord, vec3 normal_pixel ) {
 	normal_pixel = normal_pixel * 255./127. - 128./127.;
-	mat3 TBN = cotangent_frame(N, V, texcoord);
-	return normalize(TBN * normal_pixel);
+	return normalize(v_TBN * normal_pixel);
 }
 
 sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos) {
@@ -285,7 +277,7 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
 
 void main() {
 	vec3 view = normalize(u_camera_pos - v_world_position);
-	mat3 inv_TBN = transpose(cotangent_frame(normalize(v_face_normal), view, v_uv));
+	mat3 inv_TBN = transpose(v_TBN);
     vec3 tangent_view = inv_TBN * view;
 	vec2 pom_uv = get_POM_coords(v_uv, tangent_view);
 

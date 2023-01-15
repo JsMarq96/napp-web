@@ -2,7 +2,7 @@ import {  createShader, bindMat4Uniform, bindFloatUniform, bindVec2Uniform, bind
 import { texture_load, texture_load_cubemap } from "./texture_utils.js"
 import {block_vertex, block_fragment} from "./shaders/block_shaders.js"
 import { blocks } from "./blocks.js"
-import { block_model, block_indices } from "./meshes/block.js"
+import { block_model, block_indices } from "./meshes/block_face.js"
 import { cubemaps } from "./cubemaps.js"
 import { skybox_init, skybox_render} from "./skybox_render.js"
 
@@ -49,20 +49,35 @@ function init_block_renderer() {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(block_indices), gl.STATIC_DRAW);
 
-  gl.enableVertexAttribArray(0);
+  gl.enableVertexAttribArray(0); //  vertex
   gl.vertexAttribPointer(0,
                          3,
                          gl.FLOAT,
                          false,
-                         5 * 4,
+                         11 * 4,
                          0);
-  gl.enableVertexAttribArray(1);
+  gl.enableVertexAttribArray(1); // normal
   gl.vertexAttribPointer(1,
+                         3,
+                         gl.FLOAT,
+                         false,
+                         11 * 4,
+                         3 * 4);
+  gl.enableVertexAttribArray(2); // tanget
+  gl.vertexAttribPointer(2,
+                         3,
+                         gl.FLOAT,
+                         false,
+                         11 * 4,
+                         6 * 4);
+  gl.enableVertexAttribArray(3); // uv
+  gl.vertexAttribPointer(3,
                          2,
                          gl.FLOAT,
                          false,
-                         5 * 4,
-                         3 * 4);
+                         11 * 4,
+                         9 * 4);
+
 
 
   gl.bindVertexArray(null);
@@ -205,9 +220,9 @@ function init_block_renderer() {
 
       var front = [center[0] - eye[0], center[1] - eye[1], center[2] - eye[2]];
 
-      eye[0] = eye[0] + front[0] * event.deltaY * 0.005;
-      eye[1] = eye[1] + front[1] * event.deltaY * 0.005;
-      eye[2] = eye[2] + front[2] * event.deltaY * 0.005;
+      eye[0] = eye[0] + front[0] * event.deltaY * 0.0003;
+      eye[1] = eye[1] + front[1] * event.deltaY * -0.0003;
+      eye[2] = eye[2] + front[2] * event.deltaY * -0.0003;
     }
 
     glMatrix.mat4.lookAt(view_mat,
