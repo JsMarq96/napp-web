@@ -7,21 +7,25 @@ let block_vertex =`#version 300 es
 
     out vec2 v_uv;
 	out vec3 v_world_position;
-	out vec3 v_face_normal;
 	out vec3 v_tangent_view;
 	out mat3 v_TBN;
 
     uniform mat4 u_model_mat;
     uniform mat4 u_vp_mat;
-	uniform vec3 u_face_normal;
 	uniform vec3 u_camera_pos;
 
     void main() {
-		v_face_normal = normalize(u_model_mat * vec4(a_normal, 0.0)).xyz;
-        vec3 v_tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
-		vec3 b = (cross(v_tangent, v_face_normal));
-		//b = (u_model_mat * vec4(b, 0.0)).xyz;
-		v_TBN = transpose(mat3(v_tangent, b, v_face_normal));
+    	// Compute the TBN
+		vec3 normal = normalize(u_model_mat * vec4(a_normal, 0.0)).xyz;
+        vec3 tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
+        tangent = normalize(tangent - (dot(normal, tangent) * normal));
+		vec3 bitangent = (cross(tangent, normal));
+
+		if (dot(cross(normal, tangent), bitangent) < 0.0) {
+			tangent = tangent * -1.0;
+		}
+
+		v_TBN = transpose(mat3(tangent, bitangent, normal));
 
 		v_uv = a_uv;
 		v_world_position = (u_model_mat * vec4(a_position, 1.0)).xyz;
@@ -29,7 +33,7 @@ let block_vertex =`#version 300 es
 
         vec3 view = normalize(u_camera_pos - v_world_position);
 		mat3 inv_TBN = transpose(v_TBN);
-    	v_tangent_view = inv_TBN * -view;
+    	v_tangent_view = inv_TBN * view;
     }`;
 
 
@@ -54,9 +58,7 @@ uniform vec2 u_specular_anim_size;
 uniform float u_render_mode;
 
 in vec3 v_tangent_view;
-in vec3 v_face_normal;
 in vec2 v_uv;
-in vec3 v_world_position;
 in mat3 v_TBN;
 out vec4 frag_color;
 
@@ -158,7 +160,7 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	//mat.emmisive =  de_gamma(texture( u_emmisive_tex, v_uv ).rgb) * u_emmisive_factor;
 	//mat.occlusion = min(texture( u_occlusion_tex, v_uv ).r, texture(u_ambient_occlusion_tex, v_uv).r);
 
-	mat.world_pos = v_world_position;
+	//mat.world_pos = v_world_position;
 
 	mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
 	mat.alpha = mat.roughness * mat.roughness;
