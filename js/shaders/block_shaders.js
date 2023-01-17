@@ -8,16 +8,17 @@ let block_vertex =`#version 300 es
     out vec2 v_uv;
 	out vec3 v_world_position;
 	out vec3 v_face_normal;
-	out vec3 v_tangent;
+	out vec3 v_tangent_view;
 	out mat3 v_TBN;
 
     uniform mat4 u_model_mat;
     uniform mat4 u_vp_mat;
 	uniform vec3 u_face_normal;
+	uniform vec3 u_camera_pos;
 
     void main() {
 		v_face_normal = normalize(u_model_mat * vec4(a_normal, 0.0)).xyz;
-        v_tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
+        vec3 v_tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
 		vec3 b = (cross(v_tangent, v_face_normal));
 		//b = (u_model_mat * vec4(b, 0.0)).xyz;
 		v_TBN = transpose(mat3(v_tangent, b, v_face_normal));
@@ -25,6 +26,10 @@ let block_vertex =`#version 300 es
 		v_uv = a_uv;
 		v_world_position = (u_model_mat * vec4(a_position, 1.0)).xyz;
         gl_Position = u_vp_mat * vec4(v_world_position, 1.0);
+
+        vec3 view = normalize(u_camera_pos - v_world_position);
+		mat3 inv_TBN = transpose(v_TBN);
+    	v_tangent_view = inv_TBN * -view;
     }`;
 
 
@@ -48,10 +53,10 @@ uniform vec2 u_normal_anim_size;
 uniform vec2 u_specular_anim_size;
 uniform float u_render_mode;
 
+in vec3 v_tangent_view;
 in vec3 v_face_normal;
 in vec2 v_uv;
 in vec3 v_world_position;
-in vec3 v_tangent;
 in mat3 v_TBN;
 out vec4 frag_color;
 
@@ -272,12 +277,11 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
 }
 
 void main() {
-	vec3 view = normalize(u_camera_pos - v_world_position);
-	mat3 inv_TBN = transpose(v_TBN);
-    vec3 tangent_view = inv_TBN * view;
-	vec2 pom_uv = get_POM_coords(v_uv, tangent_view);
+	vec2 pom_uv = get_POM_coords(v_uv, v_tangent_view);
 
     if (u_render_mode == 0.0) {
+      frag_color = vec4(texture(u_texture, pom_uv).rgb, 1.0) * 3.0;
+      return;
       sFragData frag_data = getDataOfFragment(pom_uv);
       sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
