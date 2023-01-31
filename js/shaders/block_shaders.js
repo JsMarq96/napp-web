@@ -1,9 +1,10 @@
 
 let block_vertex =`#version 300 es
     layout(location = 0)in vec3 a_position;
-	layout(location = 1)in vec3 a_normal;
-	layout(location = 2)in vec3 a_tangent;
-    layout(location = 3)in vec2 a_uv;
+    layout(location = 1)in vec2 a_uv;
+	layout(location = 2)in vec3 a_normal;
+	layout(location = 3)in vec3 a_tangent;
+	layout(location = 4)in vec3 a_binormal;
 
     out vec2 v_uv;
 	out vec3 v_world_position;
@@ -18,14 +19,11 @@ let block_vertex =`#version 300 es
     	// Compute the TBN
 		vec3 normal = normalize(u_model_mat * vec4(a_normal, 0.0)).xyz;
         vec3 tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
-        tangent = normalize(tangent - (dot(normal, tangent) * normal));
-		vec3 bitangent = (cross(tangent, normal));
+        vec3 binormal = normalize(u_model_mat * vec4(a_binormal, 0.0)).xyz;
+        //tangent = normalize(tangent - (dot(normal, tangent) * normal));
+		
 
-		if (dot(cross(normal, tangent), bitangent) < 0.0) {
-			tangent = tangent * -1.0;
-		}
-
-		v_TBN = transpose(mat3(tangent, bitangent, normal));
+		v_TBN = transpose(mat3(tangent, binormal, normal));
 
 		v_uv = a_uv;
 		v_world_position = (u_model_mat * vec4(a_position, 1.0)).xyz;
@@ -282,8 +280,8 @@ void main() {
 	vec2 pom_uv = get_POM_coords(v_uv, v_tangent_view);
 
     if (u_render_mode == 0.0) {
-      frag_color = vec4(texture(u_texture, pom_uv).rgb, 1.0) * 3.0;
-      return;
+      //frag_color = vec4(texture(u_texture, pom_uv).rgb, 1.0) * 3.0;
+      //return;
       sFragData frag_data = getDataOfFragment(pom_uv);
       sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 

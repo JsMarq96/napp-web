@@ -2,7 +2,7 @@ import {  createShader, bindMat4Uniform, bindFloatUniform, bindVec2Uniform, bind
 import { texture_load, texture_load_cubemap } from "./texture_utils.js"
 import {block_vertex, block_fragment} from "./shaders/block_shaders.js"
 import { blocks } from "./blocks.js"
-import { block_model, block_indices } from "./meshes/block_face.js"
+import { block_model, block_indices } from "./meshes/block.js"
 import { cubemaps } from "./cubemaps.js"
 import { skybox_init, skybox_render} from "./skybox_render.js"
 
@@ -54,29 +54,38 @@ function init_block_renderer() {
                          3,
                          gl.FLOAT,
                          false,
-                         11 * 4,
+                         14 * 4,
                          0);
-  gl.enableVertexAttribArray(1); // normal
+
+  gl.enableVertexAttribArray(1); //  uv
   gl.vertexAttribPointer(1,
-                         3,
+                         2,
                          gl.FLOAT,
                          false,
-                         11 * 4,
+                         14 * 4,
                          3 * 4);
-  gl.enableVertexAttribArray(2); // tanget
+
+  gl.enableVertexAttribArray(2); // normal
   gl.vertexAttribPointer(2,
                          3,
                          gl.FLOAT,
                          false,
-                         11 * 4,
-                         6 * 4);
-  gl.enableVertexAttribArray(3); // uv
+                         14 * 4,
+                         5 * 4);
+  gl.enableVertexAttribArray(3); // tanget
   gl.vertexAttribPointer(3,
-                         2,
+                         3,
                          gl.FLOAT,
                          false,
-                         11 * 4,
-                         9 * 4);
+                         14 * 4,
+                         8 * 4);
+  gl.enableVertexAttribArray(4); // binormal
+  gl.vertexAttribPointer(4,
+                         3,
+                         gl.FLOAT,
+                         false,
+                         14 * 4,
+                         11 * 4);
 
 
 
