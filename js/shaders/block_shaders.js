@@ -9,6 +9,7 @@ let block_vertex =`#version 300 es
     out vec2 v_uv;
 	out vec3 v_world_position;
 	out vec3 v_tangent_view;
+	out vec3 v_face_normal;
 	out mat3 v_TBN;
 
     uniform mat4 u_model_mat;
@@ -21,9 +22,10 @@ let block_vertex =`#version 300 es
         vec3 tangent = normalize(u_model_mat * vec4(a_tangent, 0.0)).xyz;
         vec3 binormal = normalize(u_model_mat * vec4(a_binormal, 0.0)).xyz;
         //tangent = normalize(tangent - (dot(normal, tangent) * normal));
-		
 
-		v_TBN = transpose(mat3(tangent, binormal, normal));
+		v_face_normal = normal;
+		
+		v_TBN = (mat3(tangent, binormal, normal));
 
 		v_uv = a_uv;
 		v_world_position = (u_model_mat * vec4(a_position, 1.0)).xyz;
@@ -55,9 +57,11 @@ uniform vec2 u_normal_anim_size;
 uniform vec2 u_specular_anim_size;
 uniform float u_render_mode;
 
-in vec3 v_tangent_view;
+in vec3 v_face_normal;
 in vec2 v_uv;
+in vec3 v_world_position;
 in mat3 v_TBN;
+in vec3 v_tangent_view;
 out vec4 frag_color;
 
 const float PI =  3.14159265359;
@@ -98,7 +102,29 @@ struct sFragVects {
 	float attenuation;
 };
 
-// Fill Datastructs ============
+// Fill Datastructs =============
+mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv){
+	// get edge vectors of the pixel triangle
+	vec3 dp1 = dFdx( p );
+	vec3 dp2 = dFdy( p );
+	vec2 duv1 = dFdx( uv );
+	vec2 duv2 = dFdy( uv );
+
+	// solve the linear system
+	vec3 dp2perp = cross( N,dp2);
+	vec3 dp1perp = cross( dp1, N );
+	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
+	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
+
+	// construct a scale-invariant frame
+	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
+	return mat3( T * invmax, B * invmax, N );
+}
+
+vec3 perturbNormal( vec3 N, vec3 V, vec2 texcoord, vec3 normal_pixel ) {
+	normal_pixel = normal_pixel * 255./127. - 128./127.;
+	return normalize(v_TBN * normal_pixel);
+}
 
 sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos) {
 	sFragVects vects;
@@ -151,14 +177,14 @@ sFragData getDataOfFragment(const in vec2 uv) {
 
 	vec2 normal_uv = uv / u_normal_anim_size;
 	vec4 N = texture( u_normal_tex, get_tiling_uv(uv, u_normal_anim_size));
-	//mat.normal = normalize((2.0 * N.rgb) - 1.0);
-	mat.normal = normalize(v_TBN * (N.rgb * vec3(2.0) - vec3(1.0) ));
+	mat.normal = normalize((2.0 * N.rgb) - 1.0);
+	mat.normal = normalize(perturbNormal(normalize(v_face_normal), normalize( - v_world_position), v_uv, N.rgb));
     mat.height = N.a;
 
 	//mat.emmisive =  de_gamma(texture( u_emmisive_tex, v_uv ).rgb) * u_emmisive_factor;
 	//mat.occlusion = min(texture( u_occlusion_tex, v_uv ).r, texture(u_ambient_occlusion_tex, v_uv).r);
 
-	//mat.world_pos = v_world_position;
+	mat.world_pos = v_world_position;
 
 	mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
 	mat.alpha = mat.roughness * mat.roughness;
@@ -223,11 +249,11 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
     vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness)).rg;
     vec3 fresnel_IBL = fresnel_schlick(vects.n_dot_v, data.f0, data.roughness);
-    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, -vects.r, 5.0 * data.roughness).rgb);
+    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, 5.0 * data.roughness).rgb);
 
     vec3 specular_IBL = ((fresnel_IBL * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
 
-	vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, -vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
+	vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
 
 	//return vec3(0.0);
 	//return (specular) + diffuse;
@@ -277,11 +303,12 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
 }
 
 void main() {
-	vec2 pom_uv = get_POM_coords(v_uv, v_tangent_view);
+	vec3 view = normalize(u_camera_pos - v_world_position);
+	mat3 inv_TBN = transpose(v_TBN);
+    vec3 tangent_view = inv_TBN * view;
+	vec2 pom_uv = get_POM_coords(v_uv, vec3(v_tangent_view.x, -v_tangent_view.y, v_tangent_view.z));
 
     if (u_render_mode == 0.0) {
-      //frag_color = vec4(texture(u_texture, pom_uv).rgb, 1.0) * 3.0;
-      //return;
       sFragData frag_data = getDataOfFragment(pom_uv);
       sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
