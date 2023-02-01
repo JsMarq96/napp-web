@@ -247,7 +247,7 @@ function init_block_renderer() {
     {
       gl.viewport(0, 0, canvas.width, canvas.height);
       // Clean prev, frame
-      gl.clearColor(0.0, 1.0, 1.0, 1.0);
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 
@@ -257,6 +257,8 @@ function init_block_renderer() {
 
       // Render Skybox
       skybox_render(gl, skybox_module, vp_mat, eye, cubemap_texture);
+
+      gl.disable(gl.CULL_FACE);
 
       gl.enable(gl.DEPTH_TEST);
 

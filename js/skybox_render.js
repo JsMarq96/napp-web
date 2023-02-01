@@ -17,19 +17,19 @@ function skybox_init(gl) {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
   gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(block_indices), gl.STATIC_DRAW);
 
-  gl.enableVertexAttribArray(0);
+  gl.enableVertexAttribArray(0); // vertex
   gl.vertexAttribPointer(0,
                          3,
                          gl.FLOAT,
                          false,
-                         5 * 4,
+                         14 * 4,
                          0);
-  gl.enableVertexAttribArray(1);
+  gl.enableVertexAttribArray(1); // uv
   gl.vertexAttribPointer(1,
                          2,
                          gl.FLOAT,
                          false,
-                         5 * 4,
+                         14 * 4,
                          3 * 4);
 
   var cubemap = {

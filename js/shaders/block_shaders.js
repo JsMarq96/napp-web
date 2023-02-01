@@ -134,7 +134,7 @@ sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos) {
 	vec3 v = normalize(u_camera_pos - mat.world_pos);
 	vec3 half_v = normalize(v + vects.l);
 
-	vects.r = reflect(v, normalize(mat.normal));
+	vects.r = -reflect(v, normalize(mat.normal));
 
 	vects.l_dot_h = clamp(dot(half_v, vects.l), 0.0001, 1.0);
 
@@ -303,9 +303,6 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
 }
 
 void main() {
-	vec3 view = normalize(u_camera_pos - v_world_position);
-	mat3 inv_TBN = transpose(v_TBN);
-    vec3 tangent_view = inv_TBN * view;
 	vec2 pom_uv = get_POM_coords(v_uv, vec3(v_tangent_view.x, -v_tangent_view.y, v_tangent_view.z));
 
     if (u_render_mode == 0.0) {
