@@ -272,8 +272,8 @@ float get_height(vec2 uv_coords) {
 *       But increasing the resolution of the POM effect makes it a bit better
 */
 
-const float POM_resolution = 64.0;
-const float POM_depth = 0.090;
+const float POM_resolution = 128.0;
+const float POM_depth = 0.150;
 vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
     float map_depth = get_height(base_coords);
     float layer_depth = 0.0;
