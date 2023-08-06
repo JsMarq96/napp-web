@@ -249,6 +249,7 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 
 // IBL ====================
 // Precomputed spherical harmonics at two bands
+// Validator: https://www.shadertoy.com/view/XsXyDl
 vec3 irradiance_spherical_harmonics(in vec3 n) {
 	return
 			vec3(1.796, 1.69, 1.38)
@@ -262,20 +263,21 @@ vec3 irradiance_spherical_harmonics(in vec3 n) {
 		+ vec3(-0.373, -0.332, -0.22) * (n.x * n.x - n.y * n.y);
 }
 
+//https://google.github.io/filament/Filament.html#lighting/imagebasedlights/ibltypes
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
     vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness)).rg;
     vec3 fresnel_IBL = fresnel_schlick(vects.n_dot_v, data.f0, data.roughness);
     vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0 * data.roughness).rgb);
 
-    vec3 specular_IBL = ((fresnel_IBL * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
+    vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
 
-	vec3 diffuse_IBL = data.albedo * linear_to_gamma(irradiance_spherical_harmonics(vects.normal));
+	vec3 diffuse_IBL = data.albedo * (max(irradiance_spherical_harmonics(data.normal), 0.0)) * 1.0 / PI;
 	//vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
 
 	//return vec3(0.0);
 	//return (specular) + diffuse;
-	//return (( diffuse_IBL ) + ( specular_IBL));
-    return (specular_IBL + diffuse_IBL);
+	return (( diffuse_IBL ) + ( specular_IBL));
+    return (diffuse_IBL);
 }
 
 // POM ========================
