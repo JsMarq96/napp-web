@@ -202,6 +202,7 @@ float distribution_GGX(const in sFragData data, const in sFragVects vectors) {
 	return alpha_squared / ((PI * f * f));
 }
 
+// TODO: add the grazing at 90 degrees
 vec3 fresnel_schlick(const in float angle, const in vec3 f0, const in float roughness) {
 	float f = pow(1.0 - angle, 5.0);
 	return f0 + (vec3(1.0 - roughness) - f0) * f;
@@ -246,14 +247,30 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 	return diffuse + specular;
 }
 
+// IBL ====================
+// Precomputed spherical harmonics at two bands
+vec3 irradiance_spherical_harmonics(in vec3 n) {
+	return
+			vec3(1.796, 1.69, 1.38)
+		+ vec3(1.83, 1.644, 1.15) * (n.y)
+		+ vec3(0.631, 0.614, 0.579) * (n.z)
+		+ vec3(1.631, 1.45, 0.97) * (n.x)
+		+ vec3(2.626, 2.33, 1.553) * (n.y * n.x)
+		+ vec3(0.843, 0.762, 0.549) * (n.y * n.z)
+		+ vec3(-1.475, -1.354, -0.98) * (3.0 * n.z * n.z - 1.0)
+		+ vec3(0.809, 0.727, 0.503) * (n.z * n.x)
+		+ vec3(-0.373, -0.332, -0.22) * (n.x * n.x - n.y * n.y);
+}
+
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
     vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness)).rg;
     vec3 fresnel_IBL = fresnel_schlick(vects.n_dot_v, data.f0, data.roughness);
-    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, 5.0 * data.roughness).rgb);
+    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0 * data.roughness).rgb);
 
     vec3 specular_IBL = ((fresnel_IBL * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
 
-	vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
+	vec3 diffuse_IBL = data.albedo * linear_to_gamma(irradiance_spherical_harmonics(vects.normal));
+	//vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
 
 	//return vec3(0.0);
 	//return (specular) + diffuse;
@@ -311,7 +328,8 @@ void main() {
 
  	  vec3 light_component = linear_to_gamma(vec3(2.5)) + (light_vects.n_dot_l * linear_to_gamma(vec3(1.0)) * 0.80);
 
-      frag_color = vec4(gamma_to_linear(get_IBL_contribution(frag_data, light_vects) + get_pbr_color(frag_data, light_vects) * light_component), 1.0);
+	   frag_color = vec4(gamma_to_linear(get_IBL_contribution(frag_data, light_vects)), 1.0);
+      //frag_color = vec4(gamma_to_linear(get_IBL_contribution(frag_data, light_vects) + get_pbr_color(frag_data, light_vects) * light_component), 1.0);
      } else if (u_render_mode == 1.0) {
        frag_color = vec4(texture(u_normal_tex, pom_uv).rgb, 1.0);
      }  else if (u_render_mode == 2.0) {
