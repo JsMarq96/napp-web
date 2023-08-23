@@ -288,6 +288,7 @@ function init_block_renderer() {
         bindVec2Uniform(gl, program, "u_albedo_anim_size", blocks[0][faces[i].name].albedo.size);
         bindVec2Uniform(gl, program, "u_normal_anim_size", blocks[0][faces[i].name].normal.size);
         bindVec2Uniform(gl, program, "u_specular_anim_size", blocks[0][faces[i].name].specular.size);
+        console.log(blocks[0][faces[i].name].normal.size, blocks[0][faces[i].name].albedo.size);
         bindFloatUniform(gl, program, "u_time", tim);
         bindTexture(gl, program, "u_texture", textures[blocks[0].name + faces[i].name].albedo, 0);
         bindTexture(gl, program, "u_normal_tex", textures[blocks[0].name + faces[i].name].normal, 1);

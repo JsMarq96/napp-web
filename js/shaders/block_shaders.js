@@ -150,7 +150,6 @@ vec2 get_tiling_uv(vec2 uv, vec2 uv_size) {
 	float t = u_time;
 	vec2 t_uv = (uv / uv_size) + (vec2(0.0, mod(t, uv_size.y)) / uv_size);
 	return t_uv;
-	//return (uv / uv_size) + (vec2(mod((u_time / 1000.0), uv_size.s), mod((u_time / 1000.0), uv_size.t))  * 1.0 / uv_size);
 }
 
 const float GAMMA = 2.2;
@@ -167,23 +166,18 @@ vec3 linear_to_gamma(vec3 color) {
 sFragData getDataOfFragment(const in vec2 uv) {
 	sFragData mat;
 
-	vec2 specular_uv = uv / u_specular_anim_size + (vec2(u_time / 10000.0) / u_specular_anim_size);
 	vec4 mrt = texture(u_met_rough_tex, get_tiling_uv(uv, u_specular_anim_size));
 	mat.roughness = (1.0 - mrt.r);
-    //mat.roughness = mat.roughness * mat.roughness;
 	mat.metalness = mrt.g;
 
 	mat.albedo = linear_to_gamma(texture(u_texture, get_tiling_uv(uv, u_albedo_anim_size)).rgb);
-    //mat.albedo = de_gamma(u_color.rgb * texture(u_texture, uv).rgb);
 
-	vec2 normal_uv = uv / u_normal_anim_size;
 	vec4 N = texture( u_normal_tex, get_tiling_uv(uv, u_normal_anim_size));
 	mat.normal = normalize((2.0 * N.rgb) - 1.0);
 	mat.normal = normalize(perturbNormal(normalize(v_face_normal), normalize( - v_world_position), v_uv, N.rgb));
     mat.height = N.a;
 
 	mat.emmisive = mat.albedo * mrt.b;
-	//mat.occlusion = min(texture( u_occlusion_tex, v_uv ).r, texture(u_ambient_occlusion_tex, v_uv).r);
 
 	// Bootleg reflectance
 	float reflectance_dieletectric = mix(0.4, 0.9, mat.roughness);
@@ -292,7 +286,7 @@ vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
 
 // POM ========================
 float get_height(vec2 uv_coords) {
-	return 1.0 - (texture(u_normal_tex, uv_coords).a * 2.0 - 1.0);
+	return 1.0 - (texture(u_normal_tex, get_tiling_uv(uv_coords, u_normal_anim_size)).a * 2.0 - 1.0);
 }
 
 /**
@@ -345,9 +339,9 @@ void main() {
 
 	   frag_color = vec4(gamma_to_linear(get_pbr_color(frag_data, light_vects)), 1.0);
      } else if (u_render_mode == 1.0) {
-       frag_color = vec4(texture(u_normal_tex, pom_uv).rgb, 1.0);
+       frag_color = vec4(texture(u_normal_tex, get_tiling_uv(pom_uv, u_normal_anim_size)).rgb, 1.0);
      }  else if (u_render_mode == 2.0) {
-       frag_color = vec4(texture(u_met_rough_tex, pom_uv).rgb, 1.0);
+       frag_color = vec4(texture(u_met_rough_tex, get_tiling_uv(pom_uv, u_specular_anim_size)).rgb, 1.0);
      }
 
      //rag_color = vec4(get_reflection_color(reflect(view, v_face_normal), 0.5), 1.0);

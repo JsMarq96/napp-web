@@ -16,7 +16,7 @@ let blocks = [
     top: {
       albedo: { dir:"/img/blocks/respawn_anchor/respawn_anchor_top.png", size: [1,10] },
       normal: { dir:"/img/blocks/respawn_anchor/respawn_anchor_top_n.png", size: [1,10] },
-      specular: { dir:"/img/blocks/respawn_anchor/respawn_anchor_top_n.png", size: [1,1] }
+      specular: { dir:"/img/blocks/respawn_anchor/respawn_anchor_top_s.png", size: [1,1] }
     },
     bottom: {
       albedo: { dir:"/img/blocks/respawn_anchor/respawn_anchor_bottom.png", size: [1,1] },
