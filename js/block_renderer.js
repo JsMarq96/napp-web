@@ -147,8 +147,39 @@ function init_block_renderer() {
     is_clicked = false;
   }
 
+  function create_block_selector_button(parent, block_data, index) {
+    var thumbnail = document.createElement("img");
+    var label = document.createElement("div");
+    label.classList.add("block-name");
+
+    thumbnail.src = block_data.side.albedo.dir;
+    label.innerHTML = block_data.name;
+
+    var button = document.createElement("button");
+    button.classList.add("block-item");
+
+    button.appendChild(thumbnail);
+    button.appendChild(label);
+
+    button.index = 0;
+    button.index += index;
+
+    button.onclick = function() {
+      selected_block = button.index;
+    };
+
+    parent.appendChild(button);
+  }
+
   canvas.onmousedown = on_press;
 
+  var selected_block = 0;
+
+  // Add the blocks buttons
+  let parent = document.getElementById("block-catalog");
+  for(var i = 0; i < blocks.length; i++) {
+    create_block_selector_button(parent, blocks[i], i);
+  }
 
   // LIGHT POS ============
   let light_icon = document.getElementById("visualization_light");
@@ -157,7 +188,6 @@ function init_block_renderer() {
     // NOTE this is a hack... an inverse transform would be much nicer
   var light_pos = glMatrix.vec3.fromValues(-8.0, 5.0, 10.0);
 
-  var selected_block = 0;
   var textures = [];
 
   let faces = [
