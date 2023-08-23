@@ -269,7 +269,7 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
 
 	// 1024 has 10 mip-levels
-	float mip_level = 7.0 * data.roughness + 2.0;
+	float mip_level = 6.0 * data.roughness + 4.0;
 	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, mip_level).rgb);
 
     vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y) * specular_sample;

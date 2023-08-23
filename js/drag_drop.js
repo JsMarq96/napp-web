@@ -1,8 +1,15 @@
 
 
 function makeWindowDragable(window) {
-
   function clickDragableElement(element) {
+    // Bring forth the clicked window
+    if (document.current_seleted) {
+      document.current_seleted.style.zIndex = 0;
+      console.log("in");
+    }
+    document.current_seleted = window;
+    window.style.zIndex = 2;
+
     document.onmousemove = dragDragableElement;
     element.srcElement.onmouseleave = function () {
       document.onmousemove = null;
