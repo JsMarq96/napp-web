@@ -147,7 +147,7 @@ sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos) {
 }
 
 vec2 get_tiling_uv(vec2 uv, vec2 uv_size) {
-	float t = u_time;
+	float t = u_time * 7.0;
 	vec2 t_uv = (uv / uv_size) + (vec2(0.0, mod(t, uv_size.y)) / uv_size);
 	return t_uv;
 }

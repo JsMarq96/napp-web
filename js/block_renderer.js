@@ -91,6 +91,7 @@ function init_block_renderer() {
 
   gl.bindVertexArray(null);
 
+  var selected_block = 0;
   var view_mat = glMatrix.mat4.create();
   var proj_mat = glMatrix.mat4.create();
   var vp_mat = glMatrix.mat4.create();
@@ -274,25 +275,24 @@ function init_block_renderer() {
 
       for(var i = 0; i < 6; i++) {
 
-        if (!((blocks[0].name + faces[i].name) in textures)){
-          textures[blocks[0].name + faces[i].name] = {albedo: texture_load(gl, "./../" + blocks[0][faces[i].name].albedo.dir),
-                                                      normal: texture_load(gl,"./../" + blocks[0][faces[i].name].normal.dir),
-                                                      specular: texture_load(gl,"./../" + blocks[0][faces[i].name].specular.dir)
-                                                     };
+        if (!((blocks[selected_block].name + faces[i].name) in textures)){
+          textures[blocks[selected_block].name + faces[i].name] = { albedo: texture_load(gl, "./../" + blocks[selected_block][faces[i].name].albedo.dir),
+                                                                    normal: texture_load(gl,"./../" + blocks[selected_block][faces[i].name].normal.dir),
+                                                                    specular: texture_load(gl,"./../" + blocks[selected_block][faces[i].name].specular.dir)
+                                                                  };
         }
 
         var tim = (((Date.now()) - time_start) ) ;
 
         bindMat4Uniform(gl, program, "u_model_mat", model);
         bindVec3Uniform(gl, program, "u_face_normal", faces[i].normal);
-        bindVec2Uniform(gl, program, "u_albedo_anim_size", blocks[0][faces[i].name].albedo.size);
-        bindVec2Uniform(gl, program, "u_normal_anim_size", blocks[0][faces[i].name].normal.size);
-        bindVec2Uniform(gl, program, "u_specular_anim_size", blocks[0][faces[i].name].specular.size);
-        console.log(blocks[0][faces[i].name].normal.size, blocks[0][faces[i].name].albedo.size);
+        bindVec2Uniform(gl, program, "u_albedo_anim_size", blocks[selected_block][faces[i].name].albedo.size);
+        bindVec2Uniform(gl, program, "u_normal_anim_size", blocks[selected_block][faces[i].name].normal.size);
+        bindVec2Uniform(gl, program, "u_specular_anim_size", blocks[selected_block][faces[i].name].specular.size);
         bindFloatUniform(gl, program, "u_time", tim);
-        bindTexture(gl, program, "u_texture", textures[blocks[0].name + faces[i].name].albedo, 0);
-        bindTexture(gl, program, "u_normal_tex", textures[blocks[0].name + faces[i].name].normal, 1);
-        bindTexture(gl, program, "u_met_rough_tex", textures[blocks[0].name + faces[i].name].specular, 2);
+        bindTexture(gl, program, "u_texture", textures[blocks[selected_block].name + faces[i].name].albedo, 0);
+        bindTexture(gl, program, "u_normal_tex", textures[blocks[selected_block].name + faces[i].name].normal, 1);
+        bindTexture(gl, program, "u_met_rough_tex", textures[blocks[selected_block].name + faces[i].name].specular, 2);
         bindTexture(gl, program, "u_enviorment_map", cubemap_texture, 3);
 
         gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT,  2 * 6 * i);
