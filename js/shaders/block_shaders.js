@@ -73,6 +73,7 @@ struct sFragData {
 	float alpha;
 	float metalness;
 	vec3 f0;
+	float f90;
     float height;
 
 	vec3 albedo;
@@ -168,7 +169,7 @@ sFragData getDataOfFragment(const in vec2 uv) {
 
 	vec2 specular_uv = uv / u_specular_anim_size + (vec2(u_time / 10000.0) / u_specular_anim_size);
 	vec4 mrt = texture(u_met_rough_tex, get_tiling_uv(uv, u_specular_anim_size));
-	mat.roughness = (1.0- mrt.r);
+	mat.roughness = (1.0 - mrt.r);
     //mat.roughness = mat.roughness * mat.roughness;
 	mat.metalness = mrt.g;
 
@@ -181,12 +182,16 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	mat.normal = normalize(perturbNormal(normalize(v_face_normal), normalize( - v_world_position), v_uv, N.rgb));
     mat.height = N.a;
 
-	//mat.emmisive =  de_gamma(texture( u_emmisive_tex, v_uv ).rgb) * u_emmisive_factor;
+	mat.emmisive = mat.albedo * mrt.b;
 	//mat.occlusion = min(texture( u_occlusion_tex, v_uv ).r, texture(u_ambient_occlusion_tex, v_uv).r);
+
+	// Bootleg reflectance
+	float reflectance_dieletectric = mix(0.4, 0.9, mat.roughness);
+	float reflectance = mix(reflectance_dieletectric, 1.0, mat.metalness);
+	mat.f0 = 0.16 * reflectance * reflectance * (1.0 - mat.metalness) + mat.albedo * mat.metalness;
 
 	mat.world_pos = v_world_position;
 
-	mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
 	mat.alpha = mat.roughness * mat.roughness;
 
 	mat.uv = uv;
@@ -217,6 +222,10 @@ float geometry_Smith(const in sFragData data, const in sFragVects vectors) {
 	return GGX(vectors.n_dot_l, k) * GGX(vectors.n_dot_v, k);
 }
 
+float Fd_Lambert() {
+	return 1.0 / PI;
+}
+
 vec3 specular_BRDF(const in sFragData data, const in sFragVects vectors) {
 	float D = distribution_GGX(data, vectors);
 
@@ -236,48 +245,49 @@ vec3 get_reflection_color(in vec3 vector, float roughness) {
    return mix(linear_to_gamma(texture(u_enviorment_map, vector, max(lod - 1.0, 0.0)).rgb), linear_to_gamma(texture(u_enviorment_map, vector, lod).rgb), roughness);
 }
 
-// PBR ===================
-vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
-	vec3 diffuse_color = mix(data.albedo, vec3(0.0), data.metalness);
-
-	vec3 specular = specular_BRDF(data, vects);// *
-	vec3 diffuse = diffuse_color / PI; // Lambertian BRDF cuz cheap
-
-	//return vec3(0.0);
-	return diffuse + specular;
-}
-
 // IBL ====================
 // Precomputed spherical harmonics at two bands
 // Validator: https://www.shadertoy.com/view/XsXyDl
 vec3 irradiance_spherical_harmonics(in vec3 n) {
 	return
-			vec3(1.796, 1.69, 1.38)
-		+ vec3(1.83, 1.644, 1.15) * (n.y)
-		+ vec3(0.631, 0.614, 0.579) * (n.z)
-		+ vec3(1.631, 1.45, 0.97) * (n.x)
-		+ vec3(2.626, 2.33, 1.553) * (n.y * n.x)
-		+ vec3(0.843, 0.762, 0.549) * (n.y * n.z)
-		+ vec3(-1.475, -1.354, -0.98) * (3.0 * n.z * n.z - 1.0)
-		+ vec3(0.809, 0.727, 0.503) * (n.z * n.x)
-		+ vec3(-0.373, -0.332, -0.22) * (n.x * n.x - n.y * n.y);
+			vec3(2.704, 2.788, 2.682)
+		+ vec3(1.256, 1.147, 1.01) * (n.y)
+		+ vec3(2.343, 2.343, 2.516) * (n.z)
+		+ vec3(1.765, 1.616, 1.423) * (n.x)
+		+ vec3(1.508, 1.364, 1.169) * (n.y * n.x)
+		+ vec3(1.674, 1.533, 1.321) * (n.y * n.z)
+		+ vec3(0.278, 0.284, 0.346) * (3.0 * n.z * n.z - 1.0)
+		+ vec3(2.398, 2.187, 1.889) * (n.z * n.x)
+		+ vec3(0.443, 0.387, 0.304) * (n.x * n.x - n.y * n.y);
 }
 
 //https://google.github.io/filament/Filament.html#lighting/imagebasedlights/ibltypes
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
-    vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness)).rg;
-    vec3 fresnel_IBL = fresnel_schlick(vects.n_dot_v, data.f0, data.roughness);
-    vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0 * data.roughness).rgb);
+    vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness), 0.0).rg;
 
-    vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + LUT_brdf.y) * specular_sample;
+	// f90 aproximation from Filament
+	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
 
-	vec3 diffuse_IBL = data.albedo * (max(irradiance_spherical_harmonics(data.normal), 0.0)) * 1.0 / PI;
-	//vec3 diffuse_IBL = data.albedo * linear_to_gamma(texture(u_enviorment_map, vects.r, 8.0).rgb) * (1.0 - fresnel_IBL);
+	// 1024 has 10 mip-levels
+	float mip_level = 7.0 * data.roughness + 2.0;
+	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, mip_level).rgb);
 
-	//return vec3(0.0);
-	//return (specular) + diffuse;
-	return (( diffuse_IBL ) + ( specular_IBL));
-    return (diffuse_IBL);
+    vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y) * specular_sample;
+
+	vec3 diffuse_IBL = max(irradiance_spherical_harmonics(data.normal), 0.0) * Fd_Lambert();
+	// Reduce intensity, and add a bit of indirect lightning
+	diffuse_IBL *= 0.5;
+	diffuse_IBL += vec3(0.25);
+
+	return ( data.albedo *  diffuse_IBL ) + specular_IBL;
+	//return ( mix(data.albedo, vec3(0.2), data.metalness) *  diffuse_IBL ) + specular_IBL;
+}
+
+// PBR ===================
+vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
+	vec3 IBL_contribution = get_IBL_contribution(data, vects);
+	
+	return IBL_contribution + data.emmisive;
 }
 
 // POM ========================
@@ -291,9 +301,10 @@ float get_height(vec2 uv_coords) {
 *       But increasing the resolution of the POM effect makes it a bit better
 */
 
-const float POM_resolution = 128.0;
 const float POM_depth = 0.150;
-vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
+// NOTE: adjusting the POM resolution dynamically seems to crash webgl accros the browser
+// For the aliasing implemente multisampling a-la MSAA x4
+vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
     float map_depth = get_height(base_coords);
     float layer_depth = 0.0;
     float prev_layer_depth = 0.0;
@@ -303,7 +314,7 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
     vec2 it_coords = base_coords;
     vec2 prev_coords = vec2(0);
     // Direction for the layer look up
-    vec2 step_vector = ((-view_vector.xy) * POM_depth) / POM_resolution;
+    vec2 step_vector = ((-view_vector.xy) * POM_depth) * layer_step;
 
     // Early stop
     if (map_depth == 0.0) {
@@ -322,16 +333,17 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector) {
 }
 
 void main() {
-	vec2 pom_uv = get_POM_coords(v_uv, vec3(v_tangent_view.x, -v_tangent_view.y, v_tangent_view.z));
+	//float pom = mix(0.0, 28.0, dot(v_face_normal, normalize(u_camera_pos - v_world_position)));
+	//frag_color = vec4(dot(v_face_normal, normalize(u_camera_pos - v_world_position)));//vec4(pom / 128.0);
+	//frag_color.a = 1.0;  
+	//return;
+	vec2 pom_uv = get_POM_coords(v_uv, vec3(v_tangent_view.x, -v_tangent_view.y, v_tangent_view.z), 128.0);
 
     if (u_render_mode == 0.0) {
       sFragData frag_data = getDataOfFragment(pom_uv);
       sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
- 	  vec3 light_component = linear_to_gamma(vec3(2.5)) + (light_vects.n_dot_l * linear_to_gamma(vec3(1.0)) * 0.80);
-
-	   frag_color = vec4(gamma_to_linear(get_IBL_contribution(frag_data, light_vects)), 1.0);
-      //frag_color = vec4(gamma_to_linear(get_IBL_contribution(frag_data, light_vects) + get_pbr_color(frag_data, light_vects) * light_component), 1.0);
+	   frag_color = vec4(gamma_to_linear(get_pbr_color(frag_data, light_vects)), 1.0);
      } else if (u_render_mode == 1.0) {
        frag_color = vec4(texture(u_normal_tex, pom_uv).rgb, 1.0);
      }  else if (u_render_mode == 2.0) {
