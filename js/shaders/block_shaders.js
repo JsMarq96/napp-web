@@ -302,12 +302,14 @@ float IGN(vec2 p) {
 */
 
 const float POM_depth = 0.150;
+const float POM_min_res = 16.0;
 // NOTE: adjusting the POM resolution dynamically seems to crash webgl accros the browser
 // For the aliasing implemente multisampling a-la MSAA x4
 vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
     float map_depth = get_height(base_coords);
     // Step depth size
     float layer_step = 1.0 / POM_resolution;
+	//float layer_step = 1.0 / clamp(mix(POM_resolution, POM_min_res, abs(dot(v_face_normal, normalize(u_camera_pos - v_world_position)))), POM_min_res, POM_resolution);
     // Direction for the layer look up
     vec2 step_vector = ((-view_vector.xy) * POM_depth) * layer_step;
 
