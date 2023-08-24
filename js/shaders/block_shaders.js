@@ -289,6 +289,12 @@ float get_height(vec2 uv_coords) {
 	return 1.0 - (texture(u_normal_tex, get_tiling_uv(uv_coords, u_normal_anim_size)).a * 2.0 - 1.0);
 }
 
+// https://www.shadertoy.com/view/4tXGWN
+float IGN(vec2 p) {
+    vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
+    return fract( magic.z * fract(dot(p,magic.xy)) );
+}
+
 /**
 * Iterate through the heighmap with the direction of the tangential view vector
 * NOTE: There is some artifacts on some extrems parts that a simple smoothing could not solve
@@ -300,30 +306,36 @@ const float POM_depth = 0.150;
 // For the aliasing implemente multisampling a-la MSAA x4
 vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
     float map_depth = get_height(base_coords);
-    float layer_depth = 0.0;
-    float prev_layer_depth = 0.0;
     // Step depth size
     float layer_step = 1.0 / POM_resolution;
-    // Starting point
-    vec2 it_coords = base_coords;
-    vec2 prev_coords = vec2(0);
     // Direction for the layer look up
     vec2 step_vector = ((-view_vector.xy) * POM_depth) * layer_step;
 
     // Early stop
     if (map_depth == 0.0) {
-        return it_coords;
+        return base_coords;
     }
 
-    // Traverse the layers until you find that you went too low
-    for(; layer_depth < 1.0 && map_depth > layer_depth; layer_depth += layer_step) {
-        prev_coords = it_coords;
-        it_coords += step_vector;
-        map_depth = get_height(it_coords);
-    }
+	vec2 tmp_coords = vec2(0.0);
 
-    // Smooth between the current and previus layer's depths based on the actual depth
-    return mix(it_coords, prev_coords, (layer_depth - map_depth) / layer_step );
+	const int sample_count = 2;
+	for(int i = 0; i < sample_count; i++) {
+		// Starting point + dither
+    	vec2 it_coords = base_coords + step_vector * IGN(gl_FragCoord.xy * u_time);
+		vec2 prev_coords = vec2(0);
+		float layer_depth = 0.0;
+    	float prev_layer_depth = 0.0;
+		// Traverse the layers until you find that you went too low
+		for(; layer_depth < 1.0 && map_depth > layer_depth; layer_depth += layer_step) {
+			prev_coords = it_coords;
+			it_coords += step_vector;
+			map_depth = get_height(it_coords);
+		}
+
+		tmp_coords += it_coords; //mix(it_coords, prev_coords, (layer_depth - map_depth) / layer_step );
+	}
+    
+    return tmp_coords / float(sample_count);
 }
 
 void main() {
@@ -331,7 +343,7 @@ void main() {
 	//frag_color = vec4(dot(v_face_normal, normalize(u_camera_pos - v_world_position)));//vec4(pom / 128.0);
 	//frag_color.a = 1.0;  
 	//return;
-	vec2 pom_uv = get_POM_coords(v_uv, vec3(v_tangent_view.x, -v_tangent_view.y, v_tangent_view.z), 128.0);
+	vec2 pom_uv = get_POM_coords(v_uv, vec3(v_tangent_view.x, -v_tangent_view.y, v_tangent_view.z), 64.0);
 
     if (u_render_mode == 0.0) {
       sFragData frag_data = getDataOfFragment(pom_uv);
