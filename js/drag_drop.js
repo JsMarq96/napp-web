@@ -11,10 +11,10 @@ function makeWindowDragable(window) {
     window.style.zIndex = 2;
 
     document.onmousemove = dragDragableElement;
-    element.srcElement.onmouseleave = function () {
+    /*element.srcElement.onmouseleave = function () {
       document.onmousemove = null;
       console.log("out");
-    };
+    };*/
 
     window.start_pos_x = element.clientX;
     window.start_pos_y = element.clientY;

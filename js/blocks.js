@@ -47,6 +47,25 @@ let blocks = [
       normal: { dir:"/img/blocks/stone_diamond_ore/16_n.png", size: [1,1] },
       specular: { dir:"/img/blocks/stone_diamond_ore/16_s.png", size: [1,1] }
     }
+  },
+  {
+    type: 2,
+    name: "tnt",
+    top: {
+      albedo: { dir:"/img/blocks/tnt/tnt_top.png", size: [1,1] },
+      normal: { dir:"/img/blocks/tnt/tnt_top_n.png", size: [1,1] },
+      specular: { dir:"/img/blocks/tnt/tnt_top_s.png", size: [1,1] }
+    },
+    side: {
+      albedo: { dir:"/img/blocks/tnt/tnt_side.png", size: [1,1] },
+      normal: { dir:"/img/blocks/tnt/tnt_side_n.png", size: [1,1] },
+      specular: { dir:"/img/blocks/tnt/tnt_side_s.png", size: [1,1] }
+    },
+    bottom: {
+      albedo: { dir:"/img/blocks/tnt/tnt_bottom.png", size: [1,1] },
+      normal: { dir:"/img/blocks/tnt/tnt_bottom_n.png", size: [1,1] },
+      specular: { dir:"/img/blocks/tnt/tnt_bottom_s.png", size: [1,1] }
+    },
   }
 ];
 

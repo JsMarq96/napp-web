@@ -262,14 +262,14 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 	// f90 aproximation from Filament
 	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
 
-	// 1024 has 10 mip-levels
+	// 1024 has 10 mip-levels, avoid going to low
 	float mip_level = 6.0 * data.roughness + 4.0;
 	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, mip_level).rgb);
 
     vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y) * specular_sample;
 
 	vec3 diffuse_IBL = max(irradiance_spherical_harmonics(data.normal), 0.0) * Fd_Lambert();
-	// Reduce intensity, and add a bit of indirect lightning
+	// Reduce intensity, and add a bit of ambient lightning
 	diffuse_IBL *= 0.5;
 	diffuse_IBL += vec3(0.25);
 
@@ -320,10 +320,12 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
 
 	vec2 tmp_coords = vec2(0.0);
 
-	const int sample_count = 2;
+	// Cheapo and basic AA, but a bit noisy
+	const int sample_count = 3;
 	for(int i = 0; i < sample_count; i++) {
 		// Starting point + dither
-    	vec2 it_coords = base_coords + step_vector * IGN(gl_FragCoord.xy * u_time);
+    	// vec2 it_coords = base_coords + step_vector * IGN(gl_FragCoord.xy * float(i));
+		vec2 it_coords = base_coords + step_vector * IGN(gl_FragCoord.xy * u_time);
 		vec2 prev_coords = vec2(0);
 		float layer_depth = 0.0;
     	float prev_layer_depth = 0.0;
@@ -341,10 +343,6 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
 }
 
 void main() {
-	//float pom = mix(0.0, 28.0, dot(v_face_normal, normalize(u_camera_pos - v_world_position)));
-	//frag_color = vec4(dot(v_face_normal, normalize(u_camera_pos - v_world_position)));//vec4(pom / 128.0);
-	//frag_color.a = 1.0;  
-	//return;
 	vec2 pom_uv = get_POM_coords(v_uv, vec3(v_tangent_view.x, -v_tangent_view.y, v_tangent_view.z), 64.0);
 
     if (u_render_mode == 0.0) {
