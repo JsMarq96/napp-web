@@ -32,6 +32,12 @@ function init_block_renderer() {
     //alpha: false
   });
 
+  var base_rotation = glMatrix.mat4.create();
+
+  glMatrix.mat4.fromRotation(base_rotation, 30.0 * 0.0174533, [0.0, 0.0, -1.0]);
+  console.log(base_rotation);
+
+
   gl.getExtension('OES_standard_derivatives');
   gl.getExtension('EXT_shader_texture_lod');
 
@@ -96,12 +102,8 @@ function init_block_renderer() {
   var proj_mat = glMatrix.mat4.create();
   var vp_mat = glMatrix.mat4.create();
   var base_model = glMatrix.mat4.create();
-  var model = glMatrix.mat4.create();
+  var model = [0.7071065902709961, -0.331966757774353, 0.6243383288383484, 0, -7.470993601543796e-9, 0.882947564125061, 0.4694717526435852, 0, -0.7071071267127991, -0.33196648955345154, 0.6243379712104797, 0, 0, 0, 0, 1];
   glMatrix.mat4.identity(base_model);
-
-  var base_rotation = glMatrix.mat3.create();
-  glMatrix.mat3.identity(base_rotation);
-
   //
   //
   var is_clicked = false;
@@ -140,6 +142,8 @@ function init_block_renderer() {
     } else {
       glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, y_axis);
     }
+
+    console.log(model);
   }
 
   function on_realese() {
@@ -219,7 +223,7 @@ function init_block_renderer() {
 
   // Camera position
   var up = [0.0, 1.0, 0.0];
-  var eye = [0.0, 0.0, 3.0];
+  var eye = [0.0, 0.0, 6.13];
   var center = [0.0, 0.0, 0.0];
 
   (function render(elapsed_time) {
@@ -249,7 +253,7 @@ function init_block_renderer() {
                         -2.50, 2.50,
                         0.1,
                         1000);*/
-    glMatrix.mat4.perspective(proj_mat, 90.0 * 0.0174533, aspect_ratio, 0.1, 100.0);
+    glMatrix.mat4.perspective(proj_mat, 40.0 * 0.0174533, aspect_ratio, 0.1, 10.0);
 
 
     // Zoom
@@ -278,7 +282,7 @@ function init_block_renderer() {
     {
       gl.viewport(0, 0, canvas.width, canvas.height);
       // Clean prev, frame
-      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clearColor(0.50, 0.50, 0.50, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 
@@ -287,7 +291,7 @@ function init_block_renderer() {
       gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
       // Render Skybox
-      skybox_render(gl, skybox_module, vp_mat, eye, cubemap_texture);
+      //skybox_render(gl, skybox_module, vp_mat, eye, cubemap_texture);
 
       gl.disable(gl.CULL_FACE);
 

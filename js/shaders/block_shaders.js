@@ -182,7 +182,8 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	// Bootleg reflectance
 	float reflectance_dieletectric = mix(0.4, 0.9, mat.roughness);
 	float reflectance = mix(reflectance_dieletectric, 1.0, mat.metalness);
-	mat.f0 = 0.16 * reflectance * reflectance * (1.0 - mat.metalness) + mat.albedo * mat.metalness;
+	//mat.f0 = 0.16 * reflectance * reflectance * (1.0 - mat.metalness) + mat.albedo * mat.metalness;
+	mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
 
 	mat.world_pos = v_world_position;
 
@@ -239,21 +240,21 @@ vec3 get_reflection_color(in vec3 vector, float roughness) {
    return mix(linear_to_gamma(texture(u_enviorment_map, vector, max(lod - 1.0, 0.0)).rgb), linear_to_gamma(texture(u_enviorment_map, vector, lod).rgb), roughness);
 }
 
+
 // IBL ====================
 // Precomputed spherical harmonics at two bands
 // Validator: https://www.shadertoy.com/view/XsXyDl
 vec3 irradiance_spherical_harmonics(in vec3 n) {
-	return
-			vec3(2.704, 2.788, 2.682)
-		+ vec3(1.256, 1.147, 1.01) * (n.y)
-		+ vec3(2.343, 2.343, 2.516) * (n.z)
-		+ vec3(1.765, 1.616, 1.423) * (n.x)
-		+ vec3(1.508, 1.364, 1.169) * (n.y * n.x)
-		+ vec3(1.674, 1.533, 1.321) * (n.y * n.z)
-		+ vec3(0.278, 0.284, 0.346) * (3.0 * n.z * n.z - 1.0)
-		+ vec3(2.398, 2.187, 1.889) * (n.z * n.x)
-		+ vec3(0.443, 0.387, 0.304) * (n.x * n.x - n.y * n.y);
-}
+	return vec3(1.91, 2.026, 1.981)
+	+ vec3(-0.546, -0.529, -0.451) * (n.y)
+	+ vec3(0.787, 0.981, 1.177) * (n.z)
+	+ vec3(-1.554, -1.606, -1.491) * (n.x)
+	+ vec3(1.137, 1.119, 1.015) * (n.y * n.x)
+	+ vec3(-0.471, -0.448, -0.382) * (n.y * n.z)
+	+ vec3(-1.06, -1.065, -0.92) * (3.0 * n.z * n.z - 1.0)
+	+ vec3(-0.987, -0.987, -0.903) * (n.z * n.x)
+	+ vec3(1.312, 1.237, 0.986) * (n.x * n.x - n.y * n.y);
+	}
 
 //https://google.github.io/filament/Filament.html#lighting/imagebasedlights/ibltypes
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
@@ -263,19 +264,35 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
 
 	// 1024 has 10 mip-levels, avoid going to low
-	float mip_level = 6.0 * data.roughness + 4.0;
+	float mip_level = 8.0 * data.roughness;// + 3.0;
 	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, mip_level).rgb);
+
+
+
 
     vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y) * specular_sample;
 
-	vec3 diffuse_IBL = max(irradiance_spherical_harmonics(data.normal), 0.0) * Fd_Lambert();
-	// Reduce intensity, and add a bit of ambient lightning
-	diffuse_IBL *= 0.5;
-	diffuse_IBL += vec3(0.25);
+	mat4 IBL_rotation = mat4(0.8660252690315247, -0.5000001788139343, -0, 0, 0.5000001788139343, 0.8660252690315247, 0, 0, 0, -0, 1, 0, 0, 0, 0, 1);
+	vec3 IBL_direction = data.normal;
+	//vec3 IBL_direction = normalize((IBL_rotation * vec4(data.normal, 0.0)).xyz);
 
+	vec3 diffuse_IBL = max(linear_to_gamma(irradiance_spherical_harmonics(IBL_direction)) * Fd_Lambert() , 0.0);
+	// Reduce intensity, and add a bit of ambient lightning
+	diffuse_IBL += vec3(0.20, 0.15, 0.15);
+	//return specular_IBL;
 	return ( data.albedo *  diffuse_IBL ) + specular_IBL;
 	//return ( mix(data.albedo, vec3(0.2), data.metalness) *  diffuse_IBL ) + specular_IBL;
 }
+
+// https://github.com/dmnsgn/glsl-tone-map/blob/main/aces.glsl
+vec3 aces(vec3 x) {
+	const float a = 2.51;
+	const float b = 0.03;
+	const float c = 2.43;
+	const float d = 0.59;
+	const float e = 0.14;
+	return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+  }
 
 // PBR ===================
 vec3 get_pbr_color(const in sFragData data, const in sFragVects vects) {
@@ -349,7 +366,7 @@ void main() {
       sFragData frag_data = getDataOfFragment(pom_uv);
       sFragVects light_vects = getVectsOfFragment(frag_data, u_light_pos);
 
-	   frag_color = vec4(gamma_to_linear(get_pbr_color(frag_data, light_vects)), 1.0);
+	   frag_color = vec4(gamma_to_linear(aces(get_pbr_color(frag_data, light_vects))), 1.0);
      } else if (u_render_mode == 1.0) {
        frag_color = vec4(texture(u_normal_tex, get_tiling_uv(pom_uv, u_normal_anim_size)).rgb, 1.0);
      }  else if (u_render_mode == 2.0) {
