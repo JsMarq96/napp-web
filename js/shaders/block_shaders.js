@@ -254,7 +254,7 @@ vec3 irradiance_spherical_harmonics(in vec3 n) {
 	+ vec3(-1.06, -1.065, -0.92) * (3.0 * n.z * n.z - 1.0)
 	+ vec3(-0.987, -0.987, -0.903) * (n.z * n.x)
 	+ vec3(1.312, 1.237, 0.986) * (n.x * n.x - n.y * n.y);
-	}
+}
 
 //https://google.github.io/filament/Filament.html#lighting/imagebasedlights/ibltypes
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
@@ -263,12 +263,9 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 	// f90 aproximation from Filament
 	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
 
-	// 1024 has 10 mip-levels, avoid going to low
-	float mip_level = 8.0 * data.roughness;// + 3.0;
+	// 1024 has 10 mip-levels, avoid going too high
+	float mip_level = 8.0 * data.roughness - 2.0;
 	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, mip_level).rgb);
-
-
-
 
     vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y) * specular_sample;
 
@@ -277,13 +274,13 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 	//vec3 IBL_direction = normalize((IBL_rotation * vec4(data.normal, 0.0)).xyz);
 
 	vec3 diffuse_IBL = max(linear_to_gamma(irradiance_spherical_harmonics(IBL_direction)) * Fd_Lambert() , 0.0);
-	// Reduce intensity, and add a bit of ambient lightning
+	// Add a bit of uniform ambient lightning
 	diffuse_IBL += vec3(0.20, 0.15, 0.15);
-	//return specular_IBL;
-	return ( data.albedo *  diffuse_IBL ) + specular_IBL;
-	//return ( mix(data.albedo, vec3(0.2), data.metalness) *  diffuse_IBL ) + specular_IBL;
+	
+	return ( mix(data.albedo, vec3(0.1), data.metalness) *  diffuse_IBL ) + specular_IBL;
 }
 
+// ACES TONEMAPPER ===================
 // https://github.com/dmnsgn/glsl-tone-map/blob/main/aces.glsl
 vec3 aces(vec3 x) {
 	const float a = 2.51;
@@ -306,6 +303,7 @@ float get_height(vec2 uv_coords) {
 	return 1.0 - (texture(u_normal_tex, get_tiling_uv(uv_coords, u_normal_anim_size)).a * 2.0 - 1.0);
 }
 
+// Dithering function for POM
 // https://www.shadertoy.com/view/4tXGWN
 float IGN(vec2 p) {
     vec3 magic = vec3(0.06711056, 0.00583715, 52.9829189);
@@ -338,7 +336,7 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
 	vec2 tmp_coords = vec2(0.0);
 
 	// Cheapo and basic AA, but a bit noisy
-	const int sample_count = 3;
+	const int sample_count = 2;
 	for(int i = 0; i < sample_count; i++) {
 		// Starting point + dither
     	// vec2 it_coords = base_coords + step_vector * IGN(gl_FragCoord.xy * float(i));
