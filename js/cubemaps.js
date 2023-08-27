@@ -3,7 +3,7 @@
 let cubemaps = [
   {
     name: "alps",
-    size: 512,
+    size: 256,
     base_url: "/img/hdres/field/",
     imgs_url: [
       "px.png", "nx.png",
