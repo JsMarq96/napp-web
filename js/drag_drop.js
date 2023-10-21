@@ -5,10 +5,11 @@ function makeWindowDragable(window) {
     // Bring forth the clicked window
     if (document.current_seleted) {
       document.current_seleted.style.zIndex = 0;
-      console.log("in");
+      document.current_seleted.style.boxShadow = "none";
     }
     document.current_seleted = window;
     window.style.zIndex = 2;
+    window.style.boxShadow = "10px 10px";
 
     document.onmousemove = dragDragableElement;
     /*element.srcElement.onmouseleave = function () {
