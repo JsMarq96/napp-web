@@ -11,6 +11,7 @@
         height: 100%;
         display: flex;
         margin: 0px;
+        overflow: hidden;
     }
 
     #wrapper > div {
@@ -106,6 +107,12 @@
         position: absolute;
     }
 
+    .close_window_button {
+        top: 15px;
+        right: 15px;
+        position: absolute;
+    }
+
 /* BLOCK SELECTOR STYLE =================== */
     #block-selector {
         position: absolute;
@@ -162,7 +169,7 @@
         height: 35px;
         left: 2.5%;
         bottom: 10px;
-        position:absolute;
+        position: absolute;
     }
 
     #taskbar #clock {
@@ -175,6 +182,32 @@
         top: 1px;
         position: absolute;
     }
+
+    .desktop-icon {
+        position: absolute;
+        width: 100px;
+        height: 100px;
+        z-index: 0;
+    }
+    .desktop-icon button {
+        width: 100%;
+        height: 100%;
+    }
+
+    #visualizer_launcher {
+        right: 20px;
+        top: 20px;
+    }
+
+    #block_selector_launcher {
+        right: 20px;
+        top: 150px;
+    }
+
+    #the_author_launcher {
+        right: 20px;
+        top: 290px;
+    }
   </style>
 
 
@@ -182,7 +215,7 @@
     <div id="wrapper">
       <div id="desktop-area">
         <div id="steve" class="dragable_windows">
-            <div class="window_title" ></div>
+            <div class="window_title"><div class="close_window_button" parent_id="steve" id="close_button_steve">X</div></div>
             <div class="window_body">
                 <canvas id="steve-canvas"/>
             </div>
@@ -190,6 +223,7 @@
 
         <div id="visualization" class="dragable_windows">
             <div class="window_title" >
+                <div class="close_window_button" parent_id="visualization" id="close_button_visualizer">X</div>
             </div>
             <div class="window_body">
                 <canvas id="block-canvas"></canvas>
@@ -209,6 +243,18 @@
             </div>
         </div>
 
+        <div id="visualizer_launcher" class="desktop-icon">
+            <button>Visualizer</button>
+        </div>
+
+        <div id="block_selector_launcher" class="desktop-icon">
+            <button>Block selector</button>
+        </div>
+
+        <div id="the_author_launcher" class="desktop-icon">
+            <button>The Author</button>
+        </div>
+
 
         <canvas id="screensaver-canvas"/>
 
@@ -221,13 +267,19 @@
    <script type="module">
      // Clock
      
-     import { makeWindowDragable } from "./js/drag_drop.js";
+     import { makeWindowDragable, pressCloseWindow } from "./js/drag_drop.js";
      // Window Dragging
      document.current_seleted = null;
      var windows = document.getElementsByClassName("dragable_windows");
      
      for (var i = 0; i < windows.length; i++) {
        makeWindowDragable(windows[i]);
+     }
+
+     var close_buttons = document.getElementsByClassName("close_window_button");
+     
+     for (var i = 0; i < close_buttons.length; i++) {
+        pressCloseWindow(close_buttons[i]);
      }
      //var element = document.getElementById("drag-example");
 

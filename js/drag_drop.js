@@ -4,11 +4,11 @@ function makeWindowDragable(window) {
   function clickDragableElement(element) {
     // Bring forth the clicked window
     if (document.current_seleted) {
-      document.current_seleted.style.zIndex = 0;
+      document.current_seleted.style.zIndex = 1;
       document.current_seleted.style.boxShadow = "none";
     }
     document.current_seleted = window;
-    window.style.zIndex = 2;
+    window.style.zIndex = 3;
     window.style.boxShadow = "10px 10px";
 
     document.onmousemove = dragDragableElement;
@@ -41,4 +41,12 @@ function makeWindowDragable(window) {
   title_div.onmouseup = releaseDragableElement;
 }
 
-export {makeWindowDragable};
+function pressCloseWindow(element) {
+  function on_click(e) {
+    document.getElementById(element.attributes.parent_id.nodeValue).style.visibility = "hidden";
+  }
+
+  element.addEventListener("click", on_click);
+}
+
+export {makeWindowDragable, pressCloseWindow};
