@@ -264,7 +264,7 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
 
 	// 1024 has 10 mip-levels, avoid going too high
-	float mip_level = 10.0 * (data.roughness) + 2.0;
+	float mip_level = 10.0 * (data.roughness) + 0.0;
 	vec3 reflect = vects.r;
 	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vec3(reflect.x, reflect.y, reflect.z), mip_level).rgb);
 
@@ -275,9 +275,9 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 
 	vec3 diffuse_IBL = max(linear_to_gamma(irradiance_spherical_harmonics(IBL_direction)) * Fd_Lambert(), 0.0);
 	// Add a bit of uniform ambient lightning
-	diffuse_IBL += vec3(0.20, 0.15, 0.15);
+	diffuse_IBL += vec3(0.20, 0.15, 0.15) * 0.5;
 
-	//return specular_sample;
+	//return specular_IBL;
 	return ( mix(data.albedo, vec3(0.1), data.metalness) *  diffuse_IBL ) + specular_IBL;
 }
 
