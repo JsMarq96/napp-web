@@ -136,14 +136,12 @@ function init_block_renderer() {
       return;
     }
 
-    if (Math.abs(new_y) + 0.5 < Math.abs(new_x)) {
+    //if (Math.abs(new_y) + 0.5 < Math.abs(new_x)) {
       glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, x_axis);
       glMatrix.vec3.rotateY(y_axis, y_axis, [0.0, 0.0, 0.0], new_x * 0.5 * 0.0174533);
-    } else {
-      glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, y_axis);
-    }
-
-    console.log(model);
+    //} else {
+    //  glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, y_axis);
+    //}
   }
 
   function on_realese() {

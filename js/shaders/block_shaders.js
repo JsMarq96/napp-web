@@ -245,15 +245,15 @@ vec3 get_reflection_color(in vec3 vector, float roughness) {
 // Precomputed spherical harmonics at two bands
 // Validator: https://www.shadertoy.com/view/XsXyDl
 vec3 irradiance_spherical_harmonics(in vec3 n) {
-	return vec3(1.91, 2.026, 1.981)
-	+ vec3(-0.546, -0.529, -0.451) * (n.y)
-	+ vec3(0.787, 0.981, 1.177) * (n.z)
-	+ vec3(-1.554, -1.606, -1.491) * (n.x)
-	+ vec3(1.137, 1.119, 1.015) * (n.y * n.x)
-	+ vec3(-0.471, -0.448, -0.382) * (n.y * n.z)
-	+ vec3(-1.06, -1.065, -0.92) * (3.0 * n.z * n.z - 1.0)
-	+ vec3(-0.987, -0.987, -0.903) * (n.z * n.x)
-	+ vec3(1.312, 1.237, 0.986) * (n.x * n.x - n.y * n.y);
+	return vec3(2.58676, 2.730808, 3.152812)
+	+ vec3(-0.431493, -0.665128, -0.969124) * (n.y)
+	+ vec3(-0.353886, 0.048348, 0.672755) * (n.z)
+	+ vec3(-0.604269, -0.88623, -1.298684) * (n.x)
+	+ vec3(0.320121, 0.422942, 0.541783) * (n.y * n.x)
+	+ vec3(-0.137435, -0.168666,-0.229637) * (n.y * n.z)
+	+ vec3(-0.052101, -0.149999, -0.232127) * (3.0 * n.z * n.z - 1.0)
+	+ vec3(-0.117312, -0.167151, -0.265015) * (n.z * n.x)
+	+ vec3(-0.090028, -0.021071, 0.08956) * (n.x * n.x - n.y * n.y);
 }
 
 //https://google.github.io/filament/Filament.html#lighting/imagebasedlights/ibltypes
@@ -264,20 +264,20 @@ vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
 	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
 
 	// 1024 has 10 mip-levels, avoid going too high
-	float mip_level = 9.0 * data.roughness + 3.0;
-	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vects.r, mip_level).rgb);
+	float mip_level = 10.0 * (data.roughness) + 2.0;
+	vec3 reflect = vects.r;
+	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vec3(reflect.x, reflect.y, reflect.z), mip_level).rgb);
 
     vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y) * specular_sample;
 
-	mat4 IBL_rotation = mat4(0.8660252690315247, -0.5000001788139343, -0, 0, 0.5000001788139343, 0.8660252690315247, 0, 0, 0, -0, 1, 0, 0, 0, 0, 1);
-	vec3 IBL_direction = data.normal;
+	vec3 IBL_direction = vec3(-data.normal.x, data.normal.y, data.normal.z);
 	//vec3 IBL_direction = normalize((IBL_rotation * vec4(data.normal, 0.0)).xyz);
 
-	vec3 diffuse_IBL = max(linear_to_gamma(irradiance_spherical_harmonics(IBL_direction)) * Fd_Lambert() , 0.0);
+	vec3 diffuse_IBL = max(linear_to_gamma(irradiance_spherical_harmonics(IBL_direction)) * Fd_Lambert(), 0.0);
 	// Add a bit of uniform ambient lightning
-	diffuse_IBL += vec3(0.20, 0.15, 0.15) * 0.8;
+	diffuse_IBL += vec3(0.20, 0.15, 0.15);
 
-	
+	//return specular_sample;
 	return ( mix(data.albedo, vec3(0.1), data.metalness) *  diffuse_IBL ) + specular_IBL;
 }
 
@@ -324,9 +324,10 @@ const float POM_min_res = 16.0;
 vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
     float map_depth = get_height(base_coords);
     // Step depth size
-    float layer_step = 1.0 / POM_resolution;
-	//float layer_step = 1.0 / clamp(mix(POM_resolution, POM_min_res, abs(dot(v_face_normal, normalize(u_camera_pos - v_world_position)))), POM_min_res, POM_resolution);
-    // Direction for the layer look up
+    //float layer_step = 1.0 / POM_resolution;
+	float layer_step = 1.0 / clamp(mix(POM_resolution, POM_min_res, abs(dot(v_face_normal, normalize(u_camera_pos - v_world_position)))), POM_min_res, POM_resolution);
+    
+	// Direction for the layer look up
     vec2 step_vector = ((-view_vector.xy) * POM_depth) * layer_step;
 
     // Early stop
@@ -334,28 +335,22 @@ vec2 get_POM_coords(vec2 base_coords, vec3 view_vector, float POM_resolution) {
         return base_coords;
     }
 
-	vec2 tmp_coords = vec2(0.0);
-
-	// Cheapo and basic AA, but a bit noisy
-	const int sample_count = 2;
-	for(int i = 0; i < sample_count; i++) {
-		// Starting point + dither
-    	// vec2 it_coords = base_coords + step_vector * IGN(gl_FragCoord.xy * float(i));
-		vec2 it_coords = base_coords + step_vector * IGN(gl_FragCoord.xy * u_time);
-		vec2 prev_coords = vec2(0);
-		float layer_depth = 0.0;
-    	float prev_layer_depth = 0.0;
-		// Traverse the layers until you find that you went too low
-		for(; layer_depth < 1.0 && map_depth > layer_depth; layer_depth += layer_step) {
-			prev_coords = it_coords;
-			it_coords += step_vector;
-			map_depth = get_height(it_coords);
-		}
-
-		tmp_coords += it_coords; //mix(it_coords, prev_coords, (layer_depth - map_depth) / layer_step );
+	vec2 it_coords = base_coords + step_vector;
+	float layer_depth = 0.0;
+    float prev_layer_depth = 0.0;
+	// Traverse the layers until you find that you went too low
+	for(; layer_depth < 1.0 && map_depth > layer_depth; layer_depth += layer_step) {
+		it_coords += step_vector;
+		map_depth = get_height(it_coords);
 	}
-    
-    return tmp_coords / float(sample_count);
+
+	vec2 prev_coords = it_coords - step_vector;
+	float after_depth = map_depth - layer_depth;
+	float before_depth = get_height(prev_coords) - layer_depth + layer_step;
+
+	// Interpolation of the texture coords
+	float w = after_depth / (after_depth - before_depth);
+	return prev_coords * w + it_coords * (1.0 - w);
 }
 
 void main() {
