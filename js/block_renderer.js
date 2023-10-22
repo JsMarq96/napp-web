@@ -1,6 +1,6 @@
 import {  createShader, bindMat4Uniform, bindFloatUniform, bindVec2Uniform, bindVec3Uniform, bindVec4Uniform, bindTexture } from './shader_funcs.js'
 import { texture_load, texture_load_cubemap } from "./texture_utils.js"
-import {block_vertex, block_fragment} from "./shaders/block_shaders.js"
+import { block_vertex, block_fragment } from "./shaders/block_shaders.js"
 import { blocks } from "./blocks.js"
 import { block_model, block_indices } from "./meshes/block.js"
 import { cubemaps } from "./cubemaps.js"
@@ -21,6 +21,10 @@ function get_rotation_matrix(origin_normal, destination_normal) {
                    );
 
   return rotation_mat;
+}
+
+function reset_block_render() {
+  document.querySelector("#block-canvas").model = [0.7071065902709961, -0.331966757774353, 0.6243383288383484, 0, -7.470993601543796e-9, 0.882947564125061, 0.4694717526435852, 0, -0.7071071267127991, -0.33196648955345154, 0.6243379712104797, 0, 0, 0, 0, 1]; 
 }
 
 function init_block_renderer() {
@@ -102,7 +106,7 @@ function init_block_renderer() {
   var proj_mat = glMatrix.mat4.create();
   var vp_mat = glMatrix.mat4.create();
   var base_model = glMatrix.mat4.create();
-  var model = [0.7071065902709961, -0.331966757774353, 0.6243383288383484, 0, -7.470993601543796e-9, 0.882947564125061, 0.4694717526435852, 0, -0.7071071267127991, -0.33196648955345154, 0.6243379712104797, 0, 0, 0, 0, 1];
+  canvas.model = [0.7071065902709961, -0.331966757774353, 0.6243383288383484, 0, -7.470993601543796e-9, 0.882947564125061, 0.4694717526435852, 0, -0.7071071267127991, -0.33196648955345154, 0.6243379712104797, 0, 0, 0, 0, 1];
   glMatrix.mat4.identity(base_model);
   //
   //
@@ -137,7 +141,7 @@ function init_block_renderer() {
     }
 
     //if (Math.abs(new_y) + 0.5 < Math.abs(new_x)) {
-      glMatrix.mat4.rotate(model, model, new_x * 0.5 * 0.0174533, x_axis);
+      glMatrix.mat4.rotate(canvas.model, canvas.model, new_x * 0.5 * 0.0174533, x_axis);
       glMatrix.vec3.rotateY(y_axis, y_axis, [0.0, 0.0, 0.0], new_x * 0.5 * 0.0174533);
     //} else {
     //  glMatrix.mat4.rotate(model, model, new_y * 0.5 * 0.0174533, y_axis);
@@ -316,7 +320,7 @@ function init_block_renderer() {
 
         var tim = (((Date.now()) - time_start) ) ;
 
-        bindMat4Uniform(gl, program, "u_model_mat", model);
+        bindMat4Uniform(gl, program, "u_model_mat", canvas.model);
         bindVec3Uniform(gl, program, "u_face_normal", faces[i].normal);
         bindVec2Uniform(gl, program, "u_albedo_anim_size", blocks[selected_block][faces[i].name].albedo.size);
         bindVec2Uniform(gl, program, "u_normal_anim_size", blocks[selected_block][faces[i].name].normal.size);
@@ -336,4 +340,4 @@ function init_block_renderer() {
   })();
 }
 
-export { init_block_renderer };
+export { init_block_renderer, reset_block_render };

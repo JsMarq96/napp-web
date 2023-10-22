@@ -208,6 +208,12 @@
         right: 20px;
         top: 290px;
     }
+
+    #visualization {
+        visibility: hidden;
+        z-index: 3;
+        box-shadow: 10px 10px;
+    }
   </style>
 
 
@@ -244,15 +250,15 @@
         </div>
 
         <div id="visualizer_launcher" class="desktop-icon">
-            <button>Visualizer</button>
+            <button id="visualizer_launcher_button">Visualizer</button>
         </div>
 
         <div id="block_selector_launcher" class="desktop-icon">
-            <button>Block selector</button>
+            <button id="block_selector_button">Block selector</button>
         </div>
 
         <div id="the_author_launcher" class="desktop-icon">
-            <button>The Author</button>
+            <button id="the_author_button">The Author</button>
         </div>
 
 
@@ -283,10 +289,19 @@
      }
      //var element = document.getElementById("drag-example");
 
+     // Events
+     document.getElementById("visualizer_launcher_button").onclick = function(e) {
+        document.getElementById("visualization").style.visibility = "visible";
+        document.getElementById("visualization").style.top = "39px";
+        document.getElementById("visualization").style.left = "149px";
+        reset_block_render();
+     };
+     
+
      
      import { init_webgl_screensaver } from "./js/screensaver.js";
      import { init_steve_head } from "./js/steve_head.js";
-     import { init_block_renderer } from "./js/block_renderer.js"; // 92.5
+     import { init_block_renderer, reset_block_render } from "./js/block_renderer.js"; // 92.5
      import { init_clock_animation } from "./js/clock.js";
      init_clock_animation();
      init_webgl_screensaver();
