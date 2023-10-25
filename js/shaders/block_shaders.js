@@ -75,6 +75,7 @@ struct sFragData {
 	vec3 f0;
 	float f90;
     float height;
+	float reflectance;
 
 	vec3 albedo;
 	vec3 emmisive;
@@ -104,24 +105,6 @@ struct sFragVects {
 };
 
 // Fill Datastructs =============
-mat3 cotangent_frame(vec3 N, vec3 p, vec2 uv){
-	// get edge vectors of the pixel triangle
-	vec3 dp1 = dFdx( p );
-	vec3 dp2 = dFdy( p );
-	vec2 duv1 = dFdx( uv );
-	vec2 duv2 = dFdy( uv );
-
-	// solve the linear system
-	vec3 dp2perp = cross( N,dp2);
-	vec3 dp1perp = cross( dp1, N );
-	vec3 T = dp2perp * duv1.x + dp1perp * duv2.x;
-	vec3 B = dp2perp * duv1.y + dp1perp * duv2.y;
-
-	// construct a scale-invariant frame
-	float invmax = inversesqrt( max( dot(T,T), dot(B,B) ) );
-	return mat3( T * invmax, B * invmax, N );
-}
-
 vec3 perturbNormal( vec3 N, vec3 V, vec2 texcoord, vec3 normal_pixel ) {
 	normal_pixel = normal_pixel * 255./127. - 128./127.;
 	return normalize(v_TBN * normal_pixel);
@@ -135,7 +118,7 @@ sFragVects getVectsOfFragment(const in sFragData mat, const in vec3 light_pos) {
 	vec3 v = normalize(u_camera_pos - mat.world_pos);
 	vec3 half_v = normalize(v + vects.l);
 
-	vects.r = -reflect(v, normalize(mat.normal));
+	vects.r = reflect(-v, normalize(mat.normal));
 
 	vects.l_dot_h = clamp(dot(half_v, vects.l), 0.0001, 1.0);
 
@@ -168,9 +151,12 @@ sFragData getDataOfFragment(const in vec2 uv) {
 
 	vec4 mrt = texture(u_met_rough_tex, get_tiling_uv(uv, u_specular_anim_size));
 	mat.roughness = (1.0 - mrt.r);
+	mat.roughness = sqrt(mat.roughness); // Perceptual
 	mat.metalness = mrt.g;
 
 	mat.albedo = linear_to_gamma(texture(u_texture, get_tiling_uv(uv, u_albedo_anim_size)).rgb);
+
+	//mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
 
 	vec4 N = texture( u_normal_tex, get_tiling_uv(uv, u_normal_anim_size));
 	mat.normal = normalize((2.0 * N.rgb) - 1.0);
@@ -180,10 +166,23 @@ sFragData getDataOfFragment(const in vec2 uv) {
 	mat.emmisive = mat.albedo * mrt.b;
 
 	// Bootleg reflectance
-	float reflectance_dieletectric = mix(0.4, 0.9, mat.roughness);
-	float reflectance = mix(reflectance_dieletectric, 1.0, mat.metalness);
+
+	//float reflectance_dieletectric = mix(0.4, 0.9, mat.roughness);
+	//float reflectance = mix(reflectance_dieletectric, 1.0, mat.metalness);
 	//mat.f0 = 0.16 * reflectance * reflectance * (1.0 - mat.metalness) + mat.albedo * mat.metalness;
-	mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
+	//mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
+	
+	if (mat.metalness > 0.5) {
+		// Metallic material
+		mat.reflectance = 0.750;
+		mat.f0 = mat.albedo * mat.metalness;
+	} else {
+		mat.reflectance = 0.5;
+		mat.f0 = vec3(0.16) * mat.reflectance * mat.reflectance;
+		mat.f0 = mix(vec3(0.03), mat.albedo, mat.metalness);
+	}
+
+	mat.albedo = (1.0 - mat.metalness) * mat.albedo;
 
 	mat.world_pos = v_world_position;
 
@@ -258,27 +257,27 @@ vec3 irradiance_spherical_harmonics(in vec3 n) {
 
 //https://google.github.io/filament/Filament.html#lighting/imagebasedlights/ibltypes
 vec3 get_IBL_contribution(const in sFragData data, const in sFragVects vects) {
-    vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness), 0.0).rg;
-
-	// f90 aproximation from Filament
-	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
-
 	// 1024 has 10 mip-levels, avoid going too high
 	float mip_level = 10.0 * (data.roughness) + 0.0;
 	vec3 reflect = vects.r;
-	vec3 specular_sample = linear_to_gamma(texture(u_enviorment_map, vec3(reflect.x, reflect.y, reflect.z), mip_level).rgb);
+	vec3 specular_indirect = linear_to_gamma(texture(u_enviorment_map, vec3(reflect.x, reflect.y, reflect.z), mip_level).rgb);
 
-    vec3 specular_IBL = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y) * specular_sample;
+	vec2 LUT_brdf = texture(u_brdf_LUT, vec2(vects.n_dot_v, data.roughness), 0.0).rg;
+	// f90 aproximation from Filament
+	float f90 = clamp(dot(data.f0, vec3(50.0 * 0.33)), 0.0, 1.0);
+    vec3 specular_color = ((data.f0 * LUT_brdf.x) + f90 * LUT_brdf.y);
 
 	vec3 IBL_direction = vec3(-data.normal.x, data.normal.y, data.normal.z);
 	//vec3 IBL_direction = normalize((IBL_rotation * vec4(data.normal, 0.0)).xyz);
 
 	vec3 diffuse_IBL = max(linear_to_gamma(irradiance_spherical_harmonics(IBL_direction)) * Fd_Lambert(), 0.0);
 	// Add a bit of uniform ambient lightning
-	diffuse_IBL += vec3(0.20, 0.15, 0.15) * 0.5;
+	//diffuse_IBL += vec3(0.20, 0.15, 0.15) * 0.5;
 
-	//return specular_IBL;
-	return ( mix(data.albedo, vec3(0.1), data.metalness) *  diffuse_IBL ) + specular_IBL;
+	//return diffuse_IBL;
+	return specular_indirect * specular_color;
+	return data.albedo * diffuse_IBL + specular_indirect * specular_color;
+	//return ( mix(data.albedo, vec3(0.1), data.metalness) *  diffuse_IBL ) + specular_IBL * specular_IBL;
 }
 
 // ACES TONEMAPPER ===================
